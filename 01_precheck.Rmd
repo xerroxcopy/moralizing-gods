@@ -6,20 +6,13 @@ NB: Using shortened variables.csv file that only uses variables of interest to s
 
 **Don't rerun this section unless it's a new scrape**
   
-  
-```{r}
-# setwd("/Users/pesavage/Documents/Research/Oxford Seshat/Data/MoralizingGods")
-Section1 <- "Social Complexity variables"
-Section2 <- "Ritual variables"
-Section3 <- "Religion and Normative Ideology"
-```
 
 # Checks Soc Complx data from exportdat.csv for error
 
 The variable `polities` was used all over the code. MM changed the variable name to `polities_pre` for pre-checked, pre-tidied version in order to distinguish it with the one used for analysis. 
 
 ```{r}
-polities_raw <- read_csv('polities.csv')
+polities_raw <- read_csv("inpput/polities.csv")
 ```
 
 ### Quick look at the raw data
@@ -36,19 +29,48 @@ polities_raw %>%
 
 ```
 
+### delete duplicated entries 
+
+Not sure why Dupl is deleted.
+
 ```{r}
 
 
 polities_pre <- polities_raw %>% 
-  filter(Dupl == "n")  
+  filter(Dupl == "n")
+```
+
+## dat
+
+Not sure why matrix is used for `Vars`. Trying tibble
+```{r}
+# dat_old <- read.table('input/exportdat.csv', sep=",", header=TRUE, quote = "", colClasses = "character")
+dat <- 
+  read_csv("input/exportdat.csv", col_types = cols(`Value To` = col_double())) %>%  # without col_types, returns parsing failures on row 5342, 18249, 18750.
+  filter(Section %in% c("Social Complexity variables",  "Ritual variables", "Religion and Normative Ideology"))  %>%   # Section is set in !MI.R
+  mutate(Variable = paste(Subsection, Variable)) # str_c does not work: "a" + NA = NA
+```
+
+### Quick look on dat
+
+```{r dat-plot}
+  hist(dat$`Value To`)
+```
+
+
+
+```{r}
+
   
-Vars <- as.matrix(read.csv('variables.csv', header=TRUE))
-SCdat <- matrix(nrow = 0, ncol = 0)
-dat <- read.table('exportdat.csv', sep=",", header=TRUE, quote = "", colClasses = "character")
-dat <- dat[dat$Section==Section1 | dat$Section==Section2 | dat$Section==Section3,] # Section is set in !MI.R
+# Section1 <- "Social Complexity variables"
+# Section2 <- "Ritual variables"
+# Section3 <- "Religion and Normative Ideology"
+# dat2 <- dat[dat$Section==Section1 | dat$Section==Section2 | dat$Section==Section3,] 
 
 Vars[,1] <- paste(Vars[,2],Vars[,1]) #Creating unique variable/section combinations
-dat[,5] <- paste(dat[,4],dat[,5]) #Creating unique variable/section combinations
+
+Vars <- as.matrix(read.csv('variables.csv', header=TRUE))
+SCdat <- matrix(nrow = 0, ncol = 0)
 
 for(i in 1:length(Vars[,1])){
    var <- Vars[i,1]
