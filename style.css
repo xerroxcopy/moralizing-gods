@@ -1,0 +1,31 @@
+@import url(http://fonts.googleapis.com/earlyaccess/notosansjapanese.css);
+.wf-notosansjapanese { font-family: "Noto Sans Japanese"; }
+.book {
+      font-family: 'Noto Sans Japanese', 游ゴシック体, 'Yu Gothic', YuGothic, 'ヒラギノ角ゴシック Pro', 'Hiragino Kaku Gothic Pro', メイリオ, Meiryo, Osaka, 'ＭＳ Ｐゴシック', 'MS PGothic', sans-serif !important;
+}
+.book .book-summary .summary {
+       font-family: 'Noto Sans Japanese', 游ゴシック体, 'Yu Gothic', YuGothic, 'ヒラギノ角ゴシック Pro', 'Hiragino Kaku Gothic Pro', メイリオ, Meiryo, Osaka, 'ＭＳ Ｐゴシック', 'MS PGothic', sans-serif !important;}
+.book .book-header h1 {
+  opacity: 1;
+  text-align: left;
+}
+#header .title {
+  font-family: 'Noto Sans Japanese', 游ゴシック体, 'Yu Gothic', YuGothic, 'ヒラギノ角ゴシック Pro', 'Hiragino Kaku Gothic Pro', メイリオ, Meiryo, Osaka, 'ＭＳ Ｐゴシック', 'MS PGothic', sans-serif;
+  margin-bottom: 0em;
+}
+#header h4.author {
+  margin: 0;
+  color: #666;
+  font-size: 70%;
+}
+#header h4.author em {
+  font-style: normal;
+}
+p.flushright {
+  text-align: right;
+}
+blockquote > p:last-child {
+  text-align: right;
+}
+blockquote > p:first-child {
+  text-align: inherit;

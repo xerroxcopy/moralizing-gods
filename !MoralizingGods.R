@@ -1,16 +1,16 @@
-#The following code was used for analyses in Whitehouse, Francois, Savage..., Turchin (2019), Nature, "Complex societies precede moralizing gods throughout world history", with an "exportdat.csv" file scraped from the Seshat database on 19 Jan 2018.
-#This software was developed by Peter Turchin and Patrick Savage (Copyright 29 Jan 2018). For the general methodology underlying these analyses please refer to: 
-#Turchin, P. et al. Quantitative historical analysis uncovers a single dimension of complexity that structures global variation in human social organization. Proc. Natl. Acad. Sci. U. S. A. 115, E144-E151 (2018).
-#Turchin, P. Fitting dynamical regression models to Seshat data. Cliodynamics 9, (2018).  
+The following code was used for analyses in Whitehouse, Francois, Savage..., Turchin (2019), Nature, "Complex societies precede moralizing gods throughout world history", with an "exportdat.csv" file scraped from the Seshat database on 19 Jan 2018.
+This software was developed by Peter Turchin and Patrick Savage (Copyright 29 Jan 2018). For the general methodology underlying these analyses please refer to:
+Turchin, P. et al. Quantitative historical analysis uncovers a single dimension of complexity that structures global variation in human social organization. Proc. Natl. Acad. Sci. U. S. A. 115, E144-E151 (2018).
+Turchin, P. Fitting dynamical regression models to Seshat data. Cliodynamics 9, (2018).
 
 ######
-#CC By-NC SA License
+CC By-NC SA License
 
-#Copyright (c) 2018 Peter Turchin and Patrick E. Savage
+Copyright (c) 2018 Peter Turchin and Patrick E. Savage
 
-#Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software under the conditions of Creative Commons Attribution Non-Commercial (CC By-NC SA) licensing (https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode), subject to the following conditions:
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software under the conditions of Creative Commons Attribution Non-Commercial (CC By-NC SA) licensing (https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode), subject to the following conditions:
 
-#Please include the following text in any publication using this software:
+Please include the following text in any publication using this software:
 
 #This research employed data from the Seshat Databank (seshatdatabank.info) under Creative Commons Attribution Non-Commercial (CC By-NC SA) licensing (https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode).
 
@@ -22,7 +22,7 @@
 
 #3) Turchin, P. Fitting dynamical regression models to Seshat data. Cliodynamics 9, (2018).
 
-#4) Turchin P. et al. 2015. Seshat: The Global History Databank. Cliodynamics 6(1):77â€“107. 
+#4) Turchin P. et al. 2015. Seshat: The Global History Databank. Cliodynamics 6(1):77â€?107. 
 
 #The views and conclusions contained in this document are those of the authors and should not be interpreted as representing the official positions, either expressed or implied, of the Seshat Databank, its collaborative scholarly community, or the Evolution Institute.
 
