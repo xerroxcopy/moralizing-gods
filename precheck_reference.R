@@ -17,17 +17,22 @@ for(i in 1:length(Vars_old[,1])){
   dt <- dat_old[dat_old$Variable==var,]
   SCdat_old <- rbind(SCdat_old,dt)
 }
-dat <- SCdat
-SCdat <- matrix(nrow = 0, ncol = 0)
+dim(SCdat_old)
 
-for(i in 1:nrow(polities)){
-  dt <- dat[dat$Polity==polities$PolID[i],]
-  SCdat <- rbind(SCdat,dt)
+
+dat_old <- SCdat_old
+SCdat_old <- matrix(nrow = 0, ncol = 0)
+
+for(i in 1:nrow(polities_old)){
+  dt <- dat_old[dat_old$Polity==polities_old$PolID[i],]
+  SCdat_old <- rbind(SCdat_old,dt)
 }
+dim(SCdat_old)
 
-SCdat <- SCdat[,c(1,2,5,6,7,8,9,10,11,12)] %>% as_tibble()
-row.names(SCdat) <- NULL
-
+SCdat_old <- SCdat_old[,c(1,2,5,6,7,8,9,10,11,12)]
+row.names(SCdat_old) <- NULL
+SCdat_old$Value.From %>% unique()
+SCdat_old$Value.To %>% unique()
 # Convert categorical values to numbers. Ignore warnings: they will be taken care off in the next step -- in errors
 for(i in 1:nrow(SCdat)){
   for(j in 4:5){
