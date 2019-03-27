@@ -1,0 +1,68 @@
+# Run PCA on ImpDat
+
+```{r pca}
+
+ImpDatRepl <- read.csv('ImpDatRepl.csv', header=TRUE)
+ImpDat <- ImpDatRepl[ImpDatRepl$irep==1,]
+nrep <- ImpDatRepl$irep[nrow(ImpDatRepl)]
+PC1 <- matrix(NA,(length(ImpDat[,1])),0)
+Rotations <- matrix(NA,0,9)
+PropVar <- matrix(NA,0,9)
+for(irep in 1:nrep){
+  print(irep)
+  ImpDat <- ImpDatRepl[ImpDatRepl$irep==irep,5:13] # Replace "5:13" with "5:8" and "9:13" for confirmatory analyses (changing "9" in "Rotations <- matrix(NA,0,9)" and "PropVar <- matrix(NA,0,9)" to "4" or "5" as appropriate)
+  res <- prcomp(ImpDat, scale=TRUE)
+  print(summary(res))
+  PCA<-predict(res)
+  
+  PC1 <- cbind(PC1,PCA[,1])
+  Rotations <- rbind(Rotations,res$rotation)
+  PropVar <- rbind(PropVar,summary(res)$importance[2,])
+}
+
+write.csv(PC1, file="PC1.csv",  row.names=FALSE)
+write.csv(Rotations, file="Rotations.csv",  row.names=TRUE)
+write.csv(PropVar, file="PropVar.csv",  row.names=FALSE)
+
+rm(AggrDat, ImpDat, PCA, res)
+```
+
+# gPC1.R
+
+Calculate PC1 trajectories +/- 2SD conf int [lower, mean, upper]
+
+```{r}
+
+# setwd("C:/Users/Peter Turchin/Google Drive/2.Seshat/1.R/PCA-MI")
+PC1 <- read.table("PC1.csv", sep=",", header=TRUE)
+
+PC1[,5] <- -(PC1[,5]) # NB: It is possible that the signs may be arbitrarily flipped in different PCA runs, in which case used this type of code to correct arbitrarily flipped signs
+
+
+PC1 <- (PC1-min(PC1))/max(PC1-min(PC1))  # Scale PC1 to between 0-1
+dat <- ImpDatRepl[ImpDatRepl$irep==1,]
+dat[,1] <- as.character(dat[,1])
+dat[,2] <- as.character(dat[,2])
+dat$Mean <- apply(PC1,1,mean)
+dat$Lower <- dat$Mean - 2*apply(PC1,1,sd)
+dat$Upper <- dat$Mean + 2*apply(PC1,1,sd)
+
+output <- read.table("MIoutput.csv", sep=",", header=TRUE)
+dt <- output[,1:length(dat)]
+dt[,1] <- as.character(dt[,1])
+dt[,2] <- as.character(dt[,2])
+dt[,4:length(dat)] <- NA
+names(dt) <- c("NGA","PolID","Time","Mean","Lower","Upper")
+names(dt) <- names(dat)
+
+for(i in 1:length(dat[,1])){
+  j <- 1:length(dt[,1])
+  j <- j[dt[,1]==dat[i,1] & dt[,2]==dat[i,2] & dt[,3]==dat[i,3]]
+  dt[j,] <- dat[i,]
+}
+for(i in 1:length(dt[,1])){   if(is.na(dt[i,4])){dt[i,4:length(dat)] <- dt[i-1,4:length(dat)]} }
+dat <- dt
+
+write.csv(dat, file="PC1_traj.csv",  row.names=FALSE)
+```
+

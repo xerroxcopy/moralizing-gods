@@ -1,0 +1,161 @@
+---
+title: "Moralizing Gods"
+author: ["Minoru Matsui^[Fujitsu Design]"]
+date: "`r Sys.Date()`"
+site: bookdown::bookdown_site
+documentclass: book
+link-citations: yes
+description: "Moralizing Gods paper reproduction"
+monofont: "Source Code Pro"
+---
+
+# Introduction
+
+Placeholder
+
+
+## Licence
+
+<!--chapter:end:index.Rmd-->
+
+# Precheck
+
+Make sure to use a full `polities.csv` file (if you re-run using the output the multiple imputation loop will run into bugs when it comes across NGAs with only one polity)
+
+NB: Using shortened variables.csv file that only uses variables of interest to save computational time. If using full file, may need to renumber variables in Aggr.MI
+
+**Don't rerun this section unless it's a new scrape**
+  
+  
+```{r}
+# setwd("/Users/pesavage/Documents/Research/Oxford Seshat/Data/MoralizingGods")
+Section1 <- "Social Complexity variables"
+Section2 <- "Ritual variables"
+Section3 <- "Religion and Normative Ideology"
+source("precheck.R")
+```
+
+<!--chapter:end:01_precheck.Rmd-->
+
+
+# Polities
+
+Placeholder
+
+
+
+<!--chapter:end:02_polities.Rmd-->
+
+
+# Run PCA on ImpDat
+
+Placeholder
+
+
+
+<!--chapter:end:03_pca.Rmd-->
+
+# Plot
+
+Graphs PCA results for Figure 3 of the PCA article. (see Figure3.R for more code) 
+and for the Suppl Materials: all regions
+
+
+```{r plot}
+
+# setwd("C:/Users/Peter Turchin/Google Drive/2.Seshat/1.R/PCA-MI")
+dat <- read.table("PC1_traj.csv", sep=",", header=TRUE)
+NGAs <- c("Upper Egypt","Middle Yellow River Valley")
+
+colors <- c("red","blue","darkgreen","brown","tan","black","orange","cyan","darkgrey")
+colors <- c(colors,colors,colors)
+shade_colors <- c("pink","lightblue","lightgreen","tan")
+x_ends <- c(-5000,2000)
+y_ends <- c(0,1)
+plot(x_ends, y_ends, "n", xlim = x_ends, ylim=y_ends, xlab="year", ylab="PC1", main = "")
+legend("topleft", NGAs, lty=1, lwd=3, bty="n", col=colors)
+
+for(j in 1:length(NGAs)){
+  NGA <- NGAs[j]
+  gdat <- dat[dat[,1]==NGA,]
+  polygon(x=c(gdat[,3],rev(gdat[,3])),y=c(gdat$Upper,rev(gdat$Lower)), col=shade_colors[j], border=NA)
+  lines(gdat[,3],gdat$Mean, lwd=3, col=colors[j])
+  lines(gdat[,3],gdat[,5], lwd=1, lty = 2, col=colors[j])
+  lines(gdat[,3],gdat[,6], lwd=1, lty = 2, col=colors[j])
+  text(x=x_ends[1], y=(y_ends[2] - .5*j), NGA, col=colors[j], pos=4)
+}
+
+```
+
+## Merge PC1_traj.csv with other key info
+
+
+```{r}
+
+dat <- read.table("PC1_traj.csv", sep=",", header=TRUE)
+dat2 <- read.table("polities.csv", sep=",", header=TRUE)
+dat <- merge(dat,dat2,by="PolID")
+dat2 <- read.table("NGAcoords.csv", sep=",", header=TRUE)
+dat <- merge(dat,dat2,by.x="NGA.y",by.y="NGA")
+library(plyr)
+dat<-rename(dat, c("NGA.y" = "NGA"))
+dat<-rename(dat, c("NGA.x" = "OriginalNGA"))
+dat<-dat[order(dat$NGA, dat$Time),]
+dat<-subset(dat,dat$Time>=dat$Start & dat$Time<=dat$End)
+write.csv(dat, file="PC1_traj_merged.csv",  row.names=FALSE)
+```
+
+
+# Run pre-/post-moralizing gods analyses
+
+```{r}
+source("BigGodAnalysesEditedV2.R")
+
+```
+
+
+
+# Run logistic regression
+
+```{r}
+source("RegrDat.R")
+
+```
+
+
+## FULL MODEL
+
+```{r}
+RD1 <- RegrDat[is.na(RegrDat$Lag1) == FALSE,]
+RD2 <- RD1[is.na(RD1$Lag2) == FALSE,]
+LogistRegrDat = as.data.frame(cbind(RD2$MG,RD2[,c(36,51:54)]))
+source("LogistRegr.R")
+```
+
+
+
+
+## Creat Fig. 1 map using manually created map.csv file
+
+```{r}
+source("Seshat_BG_map.r")
+
+```
+
+
+
+<!--chapter:end:04_plot.Rmd-->
+
+
+# Introduction
+
+Placeholder
+
+
+## Licence
+## Merge PC1_traj.csv with other key info
+## FULL MODEL
+## Creat Fig. 1 map using manually created map.csv file
+
+<!--chapter:end:moralizing_gods.Rmd-->
+

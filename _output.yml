@@ -1,30 +1,31 @@
 bookdown::gitbook:
-  # css: ["https://fonts.googleapis.com/earlyaccess/notosansjapanese.css", "style.css"]
+  dev: svglite
+  css: css/style.css
+  split_by: section
   config:
     toc:
       collapse: none
       before: |
-        <li><a href="./">Moralizing gods</a></li>
+        <li><a href="./">Moralizing Gods</a></li>
       after: |
-        <li><a href="https://github.com/rstudio/bookdown" target="blank">Published with bookdown</a></li>
-
-    sharing: yes
-      # facebook: no
-      # twitter: no
+        <li><a href="https://bookdown.org" target="_blank">Published with bookdown</a></li>
+    download: [pdf, epub, mobi]
+    edit: https://github.com/xerroxcopy/moralizing-gods
+    sharing:
       github: yes
-  pandoc_args: [
-        "--from", "markdown+autolink_bare_uris+tex_math_single_backslash-implicit_figures"
-        ] # https://qiita.com/kazutan/items/40b45d4aaba88a4ed706
-bookdown::tufte_book2:
-  # includes:
-  #   in_header: latex/preamble.tex
-  #   before_body: latex/before_body.tex
-  #   after_body: latex/after_body.tex
-  # keep_tex: yes
-  # dev: "cairo_pdf"
-  # latex_engine: xelatex
-  # citation_package: natbib
-  # template: null
+      facebook: no
+bookdown::html_chapters:
+  css: [css/style.css, css/toc.css]
+bookdown::pdf_book:
+  includes:
+    in_header: latex/preamble.tex
+    before_body: latex/before_body.tex
+    after_body: latex/after_body.tex
+  keep_tex: yes
+  dev: "cairo_pdf"
+  latex_engine: xelatex
+  citation_package: natbib
+  template: null
   pandoc_args: --top-level-division=chapter
   toc_depth: 3
   toc_unnumbered: no
@@ -32,3 +33,4 @@ bookdown::tufte_book2:
   quote_footer: ["\\VA{", "}{}"]
 bookdown::epub_book:
   dev: svglite
+stylesheet: css/style.css
