@@ -38,12 +38,22 @@ Not sure why Dupl is deleted.
 
 polities_pre <- polities_raw %>% 
   filter(Dupl == "n")
+# quick-look again
+polities_pre %>% 
+    transform(Complexity  = factor(Complexity, levels = c("Early", "Medium", "Late"))) %>% 
+  ggplot(aes(x = NGA, ymin = Start, y = (Start + End) / 2, ymax = End, colour = Complexity)) +
+  geom_errorbar(width = 0.3) +
+  geom_text(aes(label = PolName, size = abs(End - Start)), colour = "Black", vjust = -0.1, show.legend = FALSE) + # angle = 90
+  scale_size_continuous(range = c(0, 3)) +
+  scale_colour_viridis_d() +
+  coord_flip()
+
 ```
 
 ### Vars
 
 
-`Vars` is a 225 row variables of complexity suchas population, professional soldiers etc.
+`Vars` is a 225 row variables of complexity such as population, professional soldiers etc.
 
 ```{r}
 Vars_old <- as.matrix(read.csv('input/variables.csv', header=TRUE))
@@ -54,7 +64,7 @@ Vars <- read_csv("input/variables.csv") %>% # originally as.matrix()
 ```
 
 
-## dat nad filtering it into SCdat
+## dat filtering it into SCdat
 
 `dat` seems to be a matrix that contain nearly 40k entries of changes in social complexity on variables such as ...wakaran! 
 Not sure why matrix is used for `dat`. 
@@ -78,21 +88,14 @@ row.names(dat) <- NULL # at the first glance i dunno why we need this... we'll g
 ```
 
 
-### Recoding
-
-```{r}
-#inspect first
-dat$`Value From` %>%  unique() # not applicable and not applicalbe....? ISSUE
-dat$`Value To` %>%  unique() # mostly integers and NAs, 3 should be double...? idk. no characters it seems.
-dat %>% filter(`Value From` == "present absent")
-
-```
-
+## Recode
 
 Convert categorical values to numbers. Ignore warnings: they will be taken care off in the next step -- in errors
 
 ```{r}
+
 dat_recoded <- dat
+
 dat_recoded$`Value From` <- 
   dat_recoded$`Value From` %>% 
   recode(
@@ -131,7 +134,7 @@ dat_recoded$`Value From` <-
   )
 ```
 
-#### inspect
+## inspect
 
 test if there's still character
 
@@ -153,85 +156,25 @@ dat_recoded$`Value To` %>%
 ```
 none.
 
+
 ```{r}
-dat_recoded2 <- dat_recoded %>%
+SCdat <- dat_recoded %>%
   mutate(`Value From` = as.numeric(as.character(dat_recoded$`Value From`)),
-         `Value To` = as.numeric(as.character(dat_recoded$`Value To`))) %>%  # NAs introduced during coersion something... maybe it's okay?
-  drop_na(`Value From`)
-
-dat_recoded2 %>% 
-  filter(`Value To` == "")
+         `Value To` = as.numeric(as.character(dat_recoded$`Value To`))) %>%  # Convert characters "100" to `100` by `as.character() %>% as.numeric()`. not sure if this is doing fine
+  drop_na(`Value From`) %>% 
+   mutate(`Date From` = `Date From` %>% str_replace("([0-9]+)BCE", "-\\1") %>% str_replace("([0-9]+)CE", "\\1") %>% as.integer() , 
+         `Date To` = `Date To` %>% str_replace("([0-9]+)BCE", "-\\1") %>% str_replace("([0-9]+)CE", "\\1") %>% as.integer()
+         ) # Change BCE to negative years and remove CE. 
 ```
 
-```{r}
-
-SCdat <- SCdat[is.na(dat[,4])==FALSE,]
-dat <- SCdat[SCdat[,5]!="",]
-datNA <- dat
-for(i in 1:nrow(dat)){
-   datNA[i,5] <- as.numeric(dat[i,5])
-}
-errors <- rbind(errors,dat[is.na(datNA[,5]),])
-
-# Change BCE to negative years and remove CE. 
-for(i in 1:nrow(SCdat)){
-   if(substr(SCdat[i,6], (nchar(SCdat[i,6]) - 2) , nchar(SCdat[i,6]) ) =="BCE" )
-   {a <- -as.numeric(substr(SCdat[i,6], 1, (nchar(SCdat[i,6]) - 3)))
-    SCdat[i,6] <- a}
-   if(substr(SCdat[i,7], (nchar(SCdat[i,7]) - 2) , nchar(SCdat[i,7]) ) =="BCE" )
-   {a <- -as.numeric(substr(SCdat[i,7], 1, (nchar(SCdat[i,7]) - 3)))
-    SCdat[i,7] <- a}
-}
-for(i in 1:nrow(SCdat)){
-   if(substr(SCdat[i,6], (nchar(SCdat[i,6]) - 1) , nchar(SCdat[i,6]) ) =="CE" )
-   {a <- as.numeric(substr(SCdat[i,6], 1, (nchar(SCdat[i,6]) - 2)))
-    SCdat[i,6] <- a}
-   if(substr(SCdat[i,7], (nchar(SCdat[i,7]) - 1) , nchar(SCdat[i,7]) ) =="CE" )
-   {a <- as.numeric(substr(SCdat[i,7], 1, (nchar(SCdat[i,7]) - 2)))
-    SCdat[i,7] <- a}
-}
-
-dat <- SCdat[SCdat[,6]!="",]
-for(i in 1:nrow(dat)){
-   dat[i,6] <- as.numeric(dat[i,6])
-}
-errors <- rbind(errors,dat[is.na(dat[,6]),])
-
-dat <- SCdat[SCdat[,7]!="",]
-for(i in 1:nrow(dat)){
-   dat[i,7] <- as.numeric(dat[i,7])
-}
-errors <- rbind(errors,dat[is.na(dat[,7]),])
-
-write.csv(errors, file="errors.csv",  row.names=FALSE)
-write.csv(SCdat, file="SCdat.csv",  row.names=FALSE)
-old_SCdat_final <- read_csv("SCdat.csv")
-rm(i,j,var,dat,dt,datNA,a,polities,Vars)
-
-## Checks for polity inclusions
-#dat <- read.table('exportdat.csv', sep=",", header=TRUE, quote = "", colClasses = "character")
-#dat <- dat[dat$Section==Section,]
-#polities_wiki <- levels(as.factor(dat$Polity))
-#polities <- read.csv('polities.csv', header=TRUE)
-#polities <- polities[polities$Dupl=="n",]
-#polities <- levels(as.factor(polities$PolName))
-
-#extras <- vector(length=0)
-#for (i in 1:length(polities_wiki)){
-#   if(any(polities_wiki[i] == polities)==FALSE){extras <- c(extras, polities_wiki[i])}
-#}
-#missing <- vector(length=0)
-#for (i in 1:length(polities)){
-#   if(any(polities[i] == polities_wiki)==FALSE){missing <- c(missing, polities[i])}
-#}
-#write.csv(extras, file="extras.csv",  row.names=FALSE)
-#write.csv(missing, file="missing.csv",  row.names=FALSE)
-
-
-
-
-
-
-
-
+Let's take a quick look at `SCdat`.
+```{r scdat-quicklook, fig.height = 20, fig.width = 20}
+SCdat %>% 
+  filter(NGA == "Kansai") %>% 
+  ggplot(aes(x = `Date From`, y = `Value From`, colour = `Date From`)) +
+  geom_point() +
+  # geom_line() +
+  scale_colour_viridis_c() +
+  facet_wrap(~Variable, scale = "free_y")
 ```
+
