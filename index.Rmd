@@ -67,4 +67,6 @@ library(tidyverse)
 library(magrittr)
 
 ```
+## Japanese references
 
+[kohske](https://rpubs.com/kohske/479704)

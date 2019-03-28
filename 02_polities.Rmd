@@ -1,15 +1,6 @@
 # Polities
-
-
-**Start here if precheck.R is done**
   
 ```{r polities}
-
-Vars <- as.matrix(read.csv('variables.csv', header=TRUE))
-Vars <- Vars[Vars[,6]==Section1 | Vars[,6]==Section2 | Vars[,6]==Section3,] # Reduce the variables list to the Section set above
-
-Vars[,1] <- paste(Vars[,2],Vars[,1]) # Creating unique variable/section combinations
-
 Vars_df <- read_csv("variables.csv")
 
 polities <- 
