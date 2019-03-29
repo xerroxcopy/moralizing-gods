@@ -7,7 +7,7 @@ and for the Suppl Materials: all regions
 ```{r plot-pca}
 
 # setwd("C:/Users/Peter Turchin/Google Drive/2.Seshat/1.R/PCA-MI")
-dat <- read.table("PC1_traj.csv", sep=",", header=TRUE)
+dat <- read.table("output/original/PC1_traj.csv", sep=",", header=TRUE)
 NGAs <- c("Upper Egypt","Middle Yellow River Valley")
 
 colors <- c("red","blue","darkgreen","brown","tan","black","orange","cyan","darkgrey")

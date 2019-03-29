@@ -22,7 +22,7 @@ Please include the following text in any publication using this software:
 
 #3) Turchin, P. Fitting dynamical regression models to Seshat data. Cliodynamics 9, (2018).
 
-#4) Turchin P. et al. 2015. Seshat: The Global History Databank. Cliodynamics 6(1):77â€?107. 
+#4) Turchin P. et al. 2015. Seshat: The Global History Databank. Cliodynamics 6(1):77???107. 
 
 #The views and conclusions contained in this document are those of the authors and should not be interpreted as representing the official positions, either expressed or implied, of the Seshat Databank, its collaborative scholarly community, or the Evolution Institute.
 
@@ -50,7 +50,7 @@ source("precheck.R")
 
 ############################################ Start here if precheck.R is done
 
-Vars <- as.matrix(read.csv('variables.csv', header=TRUE))
+Vars <- as.matrix(read.csv('input/variables.csv', header=TRUE))
 Vars <- Vars[Vars[,6]==Section1 | Vars[,6]==Section2 | Vars[,6]==Section3,] # Reduce the variables list to the Section set above
 
 Vars[,1] <- paste(Vars[,2],Vars[,1]) #Creating unique variable/section combinations

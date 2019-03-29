@@ -6,8 +6,8 @@ output <- matrix(nrow = 0, ncol = (4+nrow(Vars)))
    
 for(iNGA in 1:(0+1*length(NGAs))){
    NGA <- NGAs[iNGA]
-   dat <- read.table('SCdat.csv', sep=",", header=TRUE, colClasses = "character")
-   polities <- read.csv('polities.csv', header=TRUE)
+   dat <- read.table('output/original/SCdat.csv', sep=",", header=TRUE, colClasses = "character")
+   polities <- read.csv('input/polities.csv', header=TRUE)
    polities <- polities[polities[,1]==NGA,]      # Use only one NGA at a time
    polities <-polities[polities[,8]=="n",]       # Exclude duplicates
    row.names(polities) <- NULL
