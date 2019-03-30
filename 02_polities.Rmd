@@ -1,7 +1,11 @@
+# !diagnostics off
+
 # Polities
   
 ```{r polities}
-Vars_df <- read_csv("variables.csv")
+# !diagnostics off
+
+Vars_df <- read_csv("input/variables.csv")
 
 polities_df <- 
   polities_pre %>% 
@@ -9,7 +13,7 @@ polities_df <-
   filter(!PolID %in% c("IdCJBun", "IdKalin")) %>%  # Remove low-coverage polities causing bugs in C. Java)
   filter(!PolID %in% c("EsHabsb", "USIllinL", "GbEmpir", "InEInCo", "InBritP", "RuYakuL", "UsIroqL")) #Remove post-colonial polities (also see below for removing post-colonial polities from NGAs with only 2 polities)
 
-NGAs <- levels(polities$NGA)
+NGAs <- levels(polities_df$NGA %>% as.factor()) # warnings maaaaay be okay.
 ```
 
 # Multiple Imputations 
@@ -44,15 +48,26 @@ df_disputed_uncertain<- SCdat %>%
 df_ranged <- SCdat %>% 
   filter(`Value Note` == "range") %>% 
   mutate(
-    `Value From` = pmap(., function (`Value From`, `Value To`, ...) rnorm(n = 1, mean = (`Value From` + `Value To`) / 2, sd = abs(`Value To` - `Value From`) / (2*1.645))
+    `Value From` = pmap(., function (`Value From`, `Value To`, ...) rnorm(n = 1, mean = (`Value From` + `Value To`) / 2, sd = abs(`Value To` - `Value From`) / (2*1.645)) 
     ) 
-  ) 
+  ) %>% unnest()
 
 df_else <- SCdat %>% 
   filter(!`Value Note` %in% c("disputed", "uncertain", "range"))
 
 
 df <- bind_rows(df_disputed_uncertain, df_ranged, df_else)
+df_min <- df %>% 
+  select(NGA, Polity, Variable, `Value From`, `Date From`, `Date To`) %>% 
+  rename(PolID = Polity,
+         Value = `Value From`, 
+         Date = `Date From`,
+         DateTo = `Date To`) %>% 
+  ungroup() %>% 
+  ungroup() %>% 
+  ungroup() %>% 
+  ungroup() # 18823 x 6
+
 ```
 
 `case_when()` extremely slow. took 3min
@@ -69,18 +84,22 @@ df <- bind_rows(df_disputed_uncertain, df_ranged, df_else)
 
 ```
 
-
+# construct output
 
 ```{r}
 
-  dat <- dat[dat[,9] != "delete",]
-  row.names(dat) <- NULL
-  datSC <- dat[,c(2,3,4,6,7)]
-  colnames(datSC) <- c("PolID","Variable","Value", "Date", "DateTo")
-  
-  # Construct output
-  tmin <- ceiling(0.01*min(polities$Start[polities$NGA==NGA]))
-  tmax <- floor(0.01*max(polities$End[polities$NGA==NGA]))
+df_join <- left_join(df_min, polities_df %>% select(-NGA), by = "PolID") # 18,823 x 15. drop NGA because polities_df has only one NGA for a PolID, whilst some PolIDs such as AfGrBct extend to other NGAs, hence produces many NA rows.
+df_century <- df_join %>% 
+  group_by(NGA) %>% 
+  summarise(tmin = (min(Start) / 100) %>% ceiling(),
+            tmax = (max(End) / 100) %>% floor()
+  ) 
+
+```
+
+# construct output
+
+```{r}
   out <- matrix(nrow=c(length(100*tmin:tmax)),ncol=(3+nrow(Vars)))
   colnames(out) <- c("NGA","PolID", "Date", Vars[,3])  # Use short names for variables
   out[,1] <- as.character(NGA)

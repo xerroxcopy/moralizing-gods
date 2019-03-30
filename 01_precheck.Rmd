@@ -12,7 +12,7 @@ NB: Using shortened variables.csv file that only uses variables of interest to s
 The variable `polities` was used all over the code. MM changed the variable name to `polities_pre` for pre-checked, pre-tidied version in order to distinguish it with the one used for analysis. 
 
 ```{r}
-polities_raw <- read_csv("inpput/polities.csv")
+polities_raw <- read_csv("input/polities.csv")
 ```
 
 ### Quick look at the raw data
@@ -80,7 +80,7 @@ dat <-
   filter(Section %in% c("Social Complexity variables",  "Ritual variables", "Religion and Normative Ideology"))  %>%   # Section is set in !MI.R
   mutate(Variable = paste(Subsection, Variable))  %>% # ISSUE: str_c does not work: "a" + NA = NA. 
   filter(Variable %in% Vars$Variable) %T>% {print(dim(.))} %>%  
-  filter(Polity %in% polities$PolID) %T>% {print(dim(.))} %>% 
+  filter(Polity %in% polities_pre$PolID) %T>% {print(dim(.))} %>% 
   select(-Section, -Subsection, -Comment)
 
 row.names(dat) <- NULL # at the first glance i dunno why we need this... we'll get back to this ISSUE
