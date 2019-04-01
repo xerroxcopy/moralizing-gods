@@ -31,7 +31,7 @@ polities_raw %>%
 
 ### delete duplicated entries 
 
-Not sure why Dupl is deleted.
+`Dupl == y` is deleted **probably** so that an NGA will only have one polity at a time. 
 
 ```{r}
 
@@ -40,7 +40,7 @@ polities_pre <- polities_raw %>%
   filter(Dupl == "n")
 # quick-look again
 polities_pre %>% 
-    transform(Complexity  = factor(Complexity, levels = c("Early", "Medium", "Late"))) %>% 
+    transform(Complexity  = factor(Complexity, levels = c("Early", "Medium", "Late"))) %>%  # just for plot sake
   ggplot(aes(x = NGA, ymin = Start, y = (Start + End) / 2, ymax = End, colour = Complexity)) +
   geom_errorbar(width = 0.3) +
   geom_text(aes(label = PolName, size = abs(End - Start)), colour = "Black", vjust = -0.1, show.legend = FALSE) + # angle = 90

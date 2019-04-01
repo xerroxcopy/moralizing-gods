@@ -109,7 +109,7 @@ df_join <-
     polities_df %>% select(-NGA),
     by = "PolID"
   ) %>%  # 18,823 x 15. drop NGA because polities_df has only one NGA for a PolID, whilst some PolIDs such as AfGrBct extend to other NGAs, hence produces many NA rows.
-  group_by(NGA) %>% 
+  group_by(PolID) %>% 
   mutate(
     PolStartC = (min(Start) / 100) %>% ceiling(), # previously `tmin`. the first century the polity has already started. e.g., if 99CE, 1. 100CE, 1. 101CE, 2.
     PolEndC = (max(End) / 100) %>% floor() # previously `tmmax`. the century the polity ended.
@@ -121,12 +121,9 @@ df_join <-
     PolStart = PolStartC * 100,
     PolEnd = PolEndC * 100
   ) %>% # convert centuries back to years
-  select(-(World.Region:centuries)) %>% # tidying columns
+  # select(-(World.Region:centuries)) %>% # tidying columns
   filter(Start <= t & End >= t) 
 
-df_polities <- left_join(df_join, polities_df, by = "NGA") %>% 
-  select(NGA, PolID, tmin, tmax, t, Start, End) %>% 
-  filter(Start <= t & End >= t)
 
 # output %>% as_tibble() %>%  is.na(.) %>% colSums()
 
@@ -134,13 +131,18 @@ df_polities <- left_join(df_join, polities_df, by = "NGA") %>%
 ```
 
 
-I started to think that I don't needto "construct" all these in regular timesteps... Just `spread()` the `df_min` and map2?
+I started to think that I don't need to "construct" all these in regular timesteps... Just `spread()` the `df_min` and map2?
 
-## spread
+## inspect
 
 ```{r}
-df_min %>% spread(key = Variable, value = Value) %>% 
+df_inspect <- df_join %>% 
+  filter(NGA == "Sogdiana", Variable == "Bureaucracy characteristics Full-time bureaucrats")
 
+df_inspect %>% 
+  ggplot(aes(x = t, y = Value, colour = PolID)) +
+  geom_point() +
+  geom_line
 ```
 
 
@@ -214,6 +216,7 @@ df_min %>% spread(key = Variable, value = Value) %>%
 output <- output[output[,4] != 0,]  # Remove rows of missing values
 write.csv(output, file="MIoutput.csv",  row.names=FALSE)
 
+output %>% as_tibble() %>% View()
 rm(dat_temp,dat,datSC,datV,out,PropCoded,century,i,iNGA,ivar,j,mean,NGA,sd,tmax,tmin,value)
 ```
 
