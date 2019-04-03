@@ -22,8 +22,6 @@ NGAs <- levels(polities_df$NGA %>% as.factor()) # warnings maaaaay be okay.
 
 `ConstrMI.R` : from 30 NGAs in `polities`, select an NGA e.g., NGAs[1] = "Big Island Hawaii", filter SCdat and polities with that NGA, 
 
-
-
 modern version:
 
 input:
@@ -34,7 +32,6 @@ input:
 First, one value from a normal distribution created from ranged value (denoted by "range" in `Value Note` in `SCdat`) is used as value
 Then "disputed" and "uncertain" is dealt by picking one. Why not just use different values as is, embodying uncertainty?..
 
-
 ```{r}
 # a dumb but fast and readble way to mutate...
 df_disputed_uncertain<- SCdat %>%
@@ -42,8 +39,6 @@ df_disputed_uncertain<- SCdat %>%
          `Value Note` %in% c("disputed", "uncertain")) %>% # includes both disputed and uncertain
   group_by(Polity, Variable, `Date From`, `Date To`)  %>%
   sample_n(1)  # Randomly sample from disputed and uncertain, eliminate extra rows
-
-
 
 df_ranged <- SCdat %>%
   filter(`Value Note` == "range") %>%
@@ -54,7 +49,6 @@ df_ranged <- SCdat %>%
 
 df_else <- SCdat %>%
   filter(!`Value Note` %in% c("disputed", "uncertain", "range"))
-
 
 df <- bind_rows(df_disputed_uncertain, df_ranged, df_else)
 df_min <- df %>%
@@ -92,7 +86,6 @@ df_min <- df %>%
 
 # construct output
 
-
 Join everything together. 
 
 input:
@@ -104,10 +97,10 @@ input:
 ```{r}
 
 df_join <-  
-  left_join(
+  inner_join(
     df_min, 
-    polities_df %>% select(-NGA),
-    by = "PolID"
+    polities_df,
+    by = c("NGA", "PolID")
   ) %>%  # 18,823 x 15. drop NGA because polities_df has only one NGA for a PolID, whilst some PolIDs such as AfGrBct extend to other NGAs, hence produces many NA rows.
   group_by(PolID) %>% 
   mutate(
@@ -124,12 +117,9 @@ df_join <-
   # select(-(World.Region:centuries)) %>% # tidying columns
   filter(Start <= t & End >= t) 
 
-
 # output %>% as_tibble() %>%  is.na(.) %>% colSums()
 
-
 ```
-
 
 I started to think that I don't need to "construct" all these in regular timesteps... Just `spread()` the `df_min` and map2?
 
@@ -139,16 +129,23 @@ I started to think that I don't need to "construct" all these in regular timeste
 df_inspect <- df_join %>% 
   filter(NGA == "Sogdiana", Variable == "Bureaucracy characteristics Full-time bureaucrats")
 
+output %>%  as_tibble() %>%  
+  filter(NGA == "Sogdiana") %>% View()
+]
+
 df_inspect %>% 
   ggplot(aes(x = t, y = Value, colour = PolID)) +
   geom_point() +
-  geom_line
+  geom_line()
 ```
-
 
 # construct output
 
 ```{r}
+
+df_spread<- 
+  df_join %>% spread(key = Variable, value = Value) 
+
   out <- matrix(nrow=c(length(100*tmin:tmax)),ncol=(3+nrow(Vars)))
   colnames(out) <- c("NGA","PolID", "Date", Vars[,3])  # Use short names for variables
   out[,1] <- as.character(NGA)
@@ -236,7 +233,6 @@ for(irep in 1:nrep){
 }
 ```
 
-
 Remove polity-dates that didn't yield 20 repl and post-colonial polities that couldn't be removed from multiple imputation due to bugs with only 1 polity/NGA
 
 ```{r}
@@ -252,8 +248,6 @@ write.csv(polities, file="polities.csv",  row.names=FALSE)
 ImpDatRepl <- ImpDatRepl[ImpDatRepl$PolID != "InGaroL",] # removing here because it seemed to create bugs when you have only 1 polity in an NGA, so couldn't remove earlier
 ImpDatRepl <- ImpDatRepl[ImpDatRepl$PolID != "CnHChin",] # removing here because it seemed to create bugs when you have only 1 polity in an NGA, so couldn't remove earlier
 ImpDatRepl <- ImpDatRepl[ImpDatRepl$PolID != "PgOrokL",] # removing here because it seemed to create bugs when you have only 1 polity in an NGA, so couldn't remove earlier
-
-
 
 dat_temp <- ImpDatRepl
 for(i in 1:nrow(polities)){
@@ -272,11 +266,7 @@ for(i in 1:nrow(polities)){
 }
 ImpDatRepl <- dat_temp[dat_temp$irep!=-99999,]
 
-
-
 write.csv(ImpDatRepl, file="ImpDatRepl.csv",  row.names=FALSE)
 #  end of the new scrape section
 ```
-
-
 
