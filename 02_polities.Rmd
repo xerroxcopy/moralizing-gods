@@ -114,20 +114,22 @@ df_join <-
     PolStart = PolStartC * 100,
     PolEnd = PolEndC * 100
   ) %>% # convert centuries back to years
-  # select(-(World.Region:centuries)) %>% # tidying columns
-  filter(Start <= t & End >= t) 
-
-# output %>% as_tibble() %>%  is.na(.) %>% colSums()
+  select(-(World.Region:centuries)) %>% # tidying columns
+  ungroup() %>% # ungroup before filtering
+  filter(Start <= t & End >= t) %>% 
+  filter((is.na(DateTo) && !is.na(Date) && (round(Date, -2) == t)) | (!is.na(Date) && !is.na(DateTo) && between(t, Date, DateTo)) | is.na(Date))# filter our if t is not close to Date, for single date datapoints, OR(|, do not use ||)　filter out if t is out of Date-DateTo range, for ranged date datapoints
+  
 
 ```
 
-I started to think that I don't need to "construct" all these in regular timesteps... Just `spread()` the `df_min` and map2?
 
 ## inspect
 
 ```{r}
 df_inspect <- df_join %>% 
   filter(NGA == "Sogdiana", Variable == "Bureaucracy characteristics Full-time bureaucrats")
+df_inspect2 <- df_join %>% 
+  filter(NGA == "Deccan")
 
 output %>%  as_tibble() %>%  
   filter(NGA == "Sogdiana") %>% View()
@@ -141,10 +143,47 @@ df_inspect %>%
 
 # construct output
 
+social complexity variable names in `df_join` (`df_join$Variables`) are joined name of subsection and variable in `Vars_df`.
+
 ```{r}
 
-df_spread<- 
-  df_join %>% spread(key = Variable, value = Value) 
+# 
+Vars_df_minimum <- 
+  Vars_df %>% 
+  mutate(Variable = paste(Subsection, Variable)) %>% 
+  select(Variable, ShortName)
+```
+
+
+now join them together and `spread()`.
+```{r}
+df_join_short <-
+  left_join(df_join, 
+            Vars_df_minimum, 
+            by = "Variable") %>% 
+  mutate(Variable = ShortName,
+         ShortName = NULL)
+df_spread <- 
+  df_join_short %>% 
+  spread(key = Variable, value = Value) 
+```
+
+inspect.
+
+```{r fig.height = 20, fig.width = 20}
+df_join_short %>% filter(NGA == "Deccan") %>%
+  ggplot(aes(x = t, y = Value, colour = PolID)) +
+  geom_point() +
+  geom_line() +
+  scale_colour_viridis_d() +
+  facet_wrap(~Variable, scale = "free_y") 
+  # theme_tufte()
+
+```
+
+
+```{r}
+
 
   out <- matrix(nrow=c(length(100*tmin:tmax)),ncol=(3+nrow(Vars)))
   colnames(out) <- c("NGA","PolID", "Date", Vars[,3])  # Use short names for variables
