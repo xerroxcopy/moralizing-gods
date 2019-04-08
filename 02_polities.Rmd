@@ -81,6 +81,7 @@ df_min <- df %>%
 #   )
 # ) %>% View()
 dim(df_min) # 18823 x 6
+df_min %>% filter(PolID == "Hawaii2") # prof priest available.
 ```
 
 # construct output
@@ -93,6 +94,12 @@ input:
 - `polities_df`: a tibble, to retrieve the range of years the polities were there.
 - 
 
+
+join by `NGA` AND `PolID`, because `polities_df` has only one `NGA` for a `PolID`, whilst some `PolID`s such as `AfGrBct` extend to other `NGA`s, hence produces many `NA` rows.
+
+- `PolStartC`: previously `tmin`. the first century (C) the polity has already started. e.g., if 99CE, 1. 100CE, 1. 101CE, 2.
+- `PolEndC`: previously `tmax`. The century the polity ended.
+- `centuries`: a sequence from `PolStartC` to `PolEndC`, e.g., if `PolStartC` = 3 and `PolEndC` = 18, 3:8. needs `unnest()`ing for tidy dataframe.
 ```{r}
 
 df_join <-  
@@ -100,25 +107,28 @@ df_join <-
     df_min, 
     polities_df,
     by = c("NGA", "PolID")
-  ) %>%  # 18,823 x 15. drop NGA because polities_df has only one NGA for a PolID, whilst some PolIDs such as AfGrBct extend to other NGAs, hence produces many NA rows.
+  ) %>%  # 18,823 x 15. 
   group_by(PolID) %>% 
   mutate(
-    PolStartC = (min(Start) / 100) %>% ceiling(), # previously `tmin`. the first century the polity has already started. e.g., if 99CE, 1. 100CE, 1. 101CE, 2.
-    PolEndC = (max(End) / 100) %>% floor() # previously `tmmax`. the century the polity ended.
+    PolStartC = (min(Start) / 100) %>% ceiling(), 
+    PolEndC = (max(End) / 100) %>% floor()
   ) %>% 
   mutate(centuries = map2(PolStartC, PolEndC, seq)) %>% 
   unnest() %>% 
   mutate(
+    # convert centuries back to years
     t = centuries * 100,
     PolStart = PolStartC * 100,
     PolEnd = PolEndC * 100
-  ) %>% # convert centuries back to years
-  select(-(World.Region:centuries)) %>% # tidying columns
-  ungroup() %>% # ungroup before filtering
-  filter(Start <= t & End >= t) %>% 
-  filter((is.na(DateTo) && !is.na(Date) && (round(Date, -2) == t)) | (!is.na(Date) && !is.na(DateTo) && between(t, Date, DateTo)) | is.na(Date))# filter our if t is not close to Date, for single date datapoints, OR(|, do not use ||)　filter out if t is out of Date-DateTo range, for ranged date datapoints
-# df_join 36,982 x 12
-
+  ) %>% 
+  select(-(World.Region:centuries)) %>%
+  ungroup() %>% # ungroup required before filtering
+  filter(t >= Start & t <= End) %>% 
+  # filter(pmap(., function (t, Start, End, ...) between(t, Start, End))) %>% 
+  filter((!is.na(Date) & is.na(DateTo) & (round(Date, -2) == t)) | (!is.na(Date) & !is.na(DateTo) & t >= Date & t <= DateTo) | is.na(Date))# filter out if t is not close to Date, for single date datapoints, OR(|, do not use ||)　filter out if t is out of Date-DateTo range, for ranged date datapoints. This line is very long because consecutive `filter()`s are `and`, not `or` 
+dim(df_join) # ~36,980 x 12
+df_join %>% filter(PolID == "Hawaii2", t == 1200)# no prof priest it seems
+iris %>% filter(between(Sepal.Width, Sepal.Width, Petal.Length ))
 ```
 
 
@@ -146,6 +156,8 @@ df_join_shortname <-
             by = "Variable") %>% 
   mutate(Variable = ShortName,
          ShortName = NULL) # 29191 * 12
+
+df_join_shortname %>% filter(PolID == "Hawaii2", t == 1200) # no profPriest
 ```
 
 then `spread()`.
