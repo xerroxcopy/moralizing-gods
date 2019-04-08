@@ -1,0 +1,6 @@
+# Inspector
+
+
+this is an appendix for `02_polities.Rmd` dedicated just for inspecting the produced dataframes and missing values / wrong values.
+
+## saving private 
