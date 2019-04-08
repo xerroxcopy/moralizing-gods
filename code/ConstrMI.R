@@ -4,6 +4,7 @@
 # setwd("C:/Users/Peter Turchin/Google Drive/2.Seshat/1.R/PCA-MI")
 output <- matrix(nrow = 0, ncol = (4+nrow(Vars)))
 
+
 for(iNGA in 1:(0+1*length(NGAs))){
   NGA <- NGAs[iNGA]
   dat <- read.table('output/original/SCdat.csv', sep=",", header=TRUE, colClasses = "character")

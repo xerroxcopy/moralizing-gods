@@ -122,30 +122,6 @@ df_join <-
 ```
 
 
-## inspect
-
-`output` made with ConstrMI.R and `df_join` made here should be loosely identical, apart from the followings: 
-
-1. minor `sample_n(1)` sampling errors, 
-1. variable dispersion with `rnorm()`, and 
-1. recoding corrections.
-
-
-```{r}
-df_inspect <- df_join %>% 
-  filter(NGA == "Sogdiana", Variable == "Bureaucracy characteristics Full-time bureaucrats")
-df_inspect2 <- df_join %>% 
-  filter(NGA == "Deccan")
-
-output %>%  as_tibble() %>%  
-  filter(NGA == "Sogdiana") %>% View()
-]
-
-df_inspect %>% 
-  ggplot(aes(x = t, y = Value, colour = PolID)) +
-  geom_point() +
-  geom_line()
-```
 
 # construct output
 
@@ -200,19 +176,80 @@ PropCoded_col <- df_spread %>%
 df_spread_prop <- 
   bind_cols(df_spread, PropCoded_col) %>% 
   select(NGA, PolID, PropCoded, everything()) # https://github.com/tidyverse/dplyr/issues/1188
+
+```
+
+## Verify PropCoded
+
+Verify `PropCoded` in the paper is identical (or at least close enough) to the ones in my code.
+
+
+`output` made with ConstrMI.R and `df_join` made here should be loosely identical, apart from the followings: 
+
+1. minor `sample_n(1)` sampling errors, 
+1. variable dispersion with `rnorm()`, and 
+1. recoding corrections.
+
+first, we need to create `output` that's identical with the original. to do so, Vars should be modified as done in `!MoralizingGods.R`.
+
+```{r}
+Vars <- as.matrix(read.csv('input/variables.csv', header=TRUE))
+Vars <- Vars[Vars[,6]==Section1 | Vars[,6]==Section2 | Vars[,6]==Section3,] # Reduce the variables list to the Section set above
+
+Vars[,1] <- paste(Vars[,2],Vars[,1])
+```
+
+Now run `ConstrMI.R` and come back.
+
+tibblize `output`
+```{r}
 output_df <- output %>% 
   as_tibble %>% 
   mutate(
     Date = as.numeric(Date),
     PropCoded = as.numeric(PropCoded)
   )
+dim(output_df) # 817 x 98
+# minimal. https://community.rstudio.com/t/drop-all-na-columns-from-a-dataframe/5844/3 
+output_df_min <- output_df %>% 
+  select_if(
+    function(x) {!all(is.na(x))
+    }
+  ) 
+dim(output_df_min) # 817 x 71. 27 columns contain nothing
+dim(df_spread_prop) # 820 x 78. while `output` got 4 columns that aren't SC variables, `df_spread_prop` got 11. 78 - 11 = 71 -  4 
+colnames(output_df_min)
+colnames(df_spread_prop[12:78])
+
+# reorder SC variable columns to match `output`
+
+df_spread_prop_reordered <- df_spread_prop %>% 
+  select(NGA:PolEnd, colnames(output_df_min)[5:71])
+colnames(df_spread_prop_reordered)
+
+
+# profPriest in Hawaii2 t= 1200 is dropped in df_spread_prop_reordered, while it's available in output_df_min at 0.1.
+View(df_spread_prop_reordered)
+View(output_df_min)
 ```
 
-### Verify PropCoded
+### Visualize
 
-Verify `PropCoded` in the paper is identical (or at least close enough) to the ones in my code.
+Ideally, points should be all lined up to `y = x`.
 
-Visualize it: ideally, points should be all lined up to `y = x`.
+```{r}
+df_inspect <- df_join %>% 
+  filter(NGA == "Sogdiana", Variable == "Bureaucracy characteristics Full-time bureaucrats")
+df_inspect2 <- df_join %>% 
+  filter(NGA == "Deccan")
+
+df_inspect %>% 
+  ggplot(aes(x = t, y = Value, colour = PolID)) +
+  geom_point() +
+  geom_line()
+```
+
+
 
 ```{r}
 left_join(
