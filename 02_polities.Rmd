@@ -81,7 +81,8 @@ df_min <- df %>%
 #   )
 # ) %>% View()
 dim(df_min) # 18823 x 6
-df_min %>% filter(PolID == "Hawaii2") # prof priest available.
+df_min %>% filter(PolID == "Hawaii2") # prof priest available
+df_min %>% filter(NGA == "Kansai", Variable =="Social Scale Polity Population")
 ```
 
 # construct output
@@ -121,14 +122,32 @@ df_join <-
     PolStart = PolStartC * 100,
     PolEnd = PolEndC * 100
   ) %>% 
-  select(-(World.Region:centuries)) %>%
+  select(-(World.Region:centuries)) %>% 
   ungroup() %>% # ungroup required before filtering
-  filter(t >= Start & t <= End) %>% 
-  # filter(pmap(., function (t, Start, End, ...) between(t, Start, End))) %>% 
-  filter((!is.na(Date) & is.na(DateTo) & (round(Date, -2) == t)) | (!is.na(Date) & !is.na(DateTo) & t >= Date & t <= DateTo) | is.na(Date))# filter out if t is not close to Date, for single date datapoints, OR(|, do not use ||)　filter out if t is out of Date-DateTo range, for ranged date datapoints. This line is very long because consecutive `filter()`s are `and`, not `or` 
-dim(df_join) # ~36,980 x 12
-df_join %>% filter(PolID == "Hawaii2", t == 1200)# no prof priest it seems
-iris %>% filter(between(Sepal.Width, Sepal.Width, Petal.Length ))
+  filter(t >= Start & t <= End) # filter overcopied rows out of polity's existing range
+  # filter(pmap(., function (t, Start, End, ...) between(t, Start, End))) %>% # alternative, not working 
+```
+
+## filter duplicates
+
+filter out if t is not close to Date, for single date datapoints, OR(|, do not use ||)　filter out if t is out of Date-DateTo range, for ranged date datapoints. This line is very long because consecutive `filter()`s are `and`, not `or`. Note `!is.na(Date)` isn't quite needed in the second argument because it's always `TRUE` when `!is.na(DateTo)`, but it's there for readability.
+
+```{r}
+df_join2 <- 
+  df_join %>% 
+  filter((!is.na(Date) & is.na(DateTo) & (round(Date, -2) == t)) | (!is.na(Date) & !is.na(DateTo) & t >= Date & t <= DateTo) | is.na(Date)) %>% 
+  group_by(NGA, PolID, Variable, t) %>% 
+  filter(is.na(DateTo) | DateTo == max(DateTo)) %>% # filter entries ranging  1000-1200 and 1200-1500 which result in two entries in t=1200. e.g., duplicate t = 1500 in Hawaii2 ProfPriest
+  filter(is.na(Date) | Date == max(Date)) %>% # filter rounding duplicates e.g., t=1200 JpKamak Social Scale Population of the largest settlement 1250 rounded to 1200
+  ungroup() %>% 
+  ungroup() %>% 
+  ungroup() %>% 
+  ungroup() %>% 
+  select(-(Date:End), -PolStart, -PolEnd)
+
+dim(df_join2) # ~37844 x 12
+df_join2 %>% filter(PolID == "Hawaii2") # inspectingoverlapping range:  no duplicates
+df_join2 %>% filter(PolID == "JpKamak") #
 ```
 
 
@@ -151,22 +170,32 @@ now join them together
 
 ```{r}
 df_join_shortname <-
-  left_join(df_join, 
+  left_join(df_join2, 
             Vars_df_minimum, 
             by = "Variable") %>% 
   mutate(Variable = ShortName,
-         ShortName = NULL) # 29191 * 12
+         ShortName = NULL) # 37854 * 12
 
-df_join_shortname %>% filter(PolID == "Hawaii2", t == 1200) # no profPriest
+df_join_shortname %>% filter(PolID == "Hawaii2", Variable == "ProfPriest") # ProfPriest available
+
+df_join %>% filter(NGA == "Kansai", t == 1200) # duplicated
+df_join2 %>% filter(NGA == "Kansai", t == 1200) # not duplicated
+df_join_shortname[720:721, ]
+output_df %>% filter(NGA == "Kansai", Date == 1200)
+df_join_shortname %>% filter(NGA == "Kansai", t == 1200)
+df_join_shortname[18434:18436,]
+
+
 ```
 
 then `spread()`.
 
 ```{r}
-df_spread <- 
+df_spread <-
   df_join_shortname %>% 
   spread(key = Variable, value = Value) %>% 
-  arrange(NGA, t) # 820 * 77. output's got 817 * 98...
+  arrange(NGA, t) 
+dim(df_spread)# 820 * 77. output's got 817 * 98...
 ```
 
 ### PropCoded
@@ -247,12 +276,11 @@ View(output_df_min)
 
 ### Visualize
 
-Ideally, points should be all lined up to `y = x`.
 
 ```{r}
-df_inspect <- df_join %>% 
+df_inspect <- df_join2 %>% 
   filter(NGA == "Sogdiana", Variable == "Bureaucracy characteristics Full-time bureaucrats")
-df_inspect2 <- df_join %>% 
+df_inspect2 <- df_join2 %>% 
   filter(NGA == "Deccan")
 
 df_inspect %>% 
@@ -261,6 +289,7 @@ df_inspect %>%
   geom_line()
 ```
 
+Ideally, points should be all lined up to `y = x`.
 
 
 ```{r}
