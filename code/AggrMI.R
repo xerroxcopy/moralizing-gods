@@ -3,7 +3,7 @@
 # scale, levels, government = (professions, bureaucracy, law), infrastr, writing, texts, money
 # setwd("C:/Users/Peter Turchin/Google Drive/2.Seshat/1.R/PCA-MI")
 
-data <- read.table('MIoutput.csv', sep=",", header=TRUE)
+data <- read.table('output/original/MIoutput.csv', sep=",", header=TRUE)
 data <- data[data$PropCoded > 30,] # Omit sparsely coded polities with PropCoded < 30%
 row.names(data) <- NULL
 dat <- data[,5:96]
@@ -62,6 +62,7 @@ for(i in 1:nrow(dat)){
    if(length(AggrDat)>0)
    {if(all(AggrDat[length(AggrDat[,1]),]==rowNA)==FALSE){AggrDat <- rbind(AggrDat,rowNA)} } 
 } 
+
 for(i in 1:length(AggrDat[,1])){
    for(j in 1:length(AggrDat[1,])){
       if(AggrDat[i,j]==-99999){AggrDat[i,j] <- NA}
@@ -71,6 +72,8 @@ AggrDat[,1] <- as.character(AggrDat[,1])
 AggrDat[,2] <- as.character(AggrDat[,2])
 colnames(AggrDat) <- c("NGA", "PolID","Time", "PropCoded", "PolPop","PolTerr","CapPop","levels", "government", "infrastr", "writing", "texts", "money",   "FreqLR", "ConformityLR", "FreqWR",  "ConformityWR", "FreqFR", "ConformityFR", "FreqER", "ConformityER", "FreqDR", "ConformityDR", "MHG", "BSP", "WrittenRecords","ReligiousHier")
 row.names(AggrDat) <- NULL
+
+AggrDat %>% as_tibble() %>% View()
 
 AggrDat$GeneralMoralisticPunishment<-ifelse(AggrDat$BSP>0.1,1,0)
 AggrDat$MoralisingHighGods<-ifelse(AggrDat$MHG==3,1,0)

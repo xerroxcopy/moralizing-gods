@@ -11,105 +11,262 @@ monofont: "Source Code Pro"
 
 # Introduction
 
-The following code was used for analyses in Whitehouse, Francois, Savage..., Turchin (2019), Nature, "Complex societies precede moralizing gods throughout world history", with an "exportdat.csv" file scraped from the Seshat database on 19 Jan 2018.
-
-This software was developed by Peter Turchin and Patrick Savage (Copyright 29 Jan 2018). For the general methodology underlying these analyses please refer to: 
-Turchin, P. et al. Quantitative historical analysis uncovers a single dimension of complexity that structures global variation in human social organization. Proc. Natl. Acad. Sci. U. S. A. 115, E144-E151 (2018).
-Turchin, P. Fitting dynamical regression models to Seshat data. Cliodynamics 9, (2018).  
+Placeholder
 
 
 ## Licence
-
-CC By-NC SA License
-
-Copyright (c) 2018 Peter Turchin and Patrick E. Savage
-
-Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software under the conditions of Creative Commons Attribution Non-Commercial (CC By-NC SA) licensing (https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode), subject to the following conditions:
-
-Please include the following text in any publication using this software:
-
-This research employed data from the Seshat Databank (seshatdatabank.info) under Creative Commons Attribution Non-Commercial (CC By-NC SA) licensing (https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode).
-
-and cite:
-
-> 1) Whitehouse, Francois, Savage,...,Turchin, "Complex societies and doctrinal rituals precede moralizing gods throughout world history" (2019) Nature.
-
-> 2) Turchin, P. et al. Quantitative historical analysis uncovers a single dimension of complexity that structures global variation in human social organization. Proc. Natl. Acad. Sci. U. S. A. 115, E144-E151 (2018).
-
-> 3) Turchin, P. Fitting dynamical regression models to Seshat data. Cliodynamics 9, (2018).
-
-> 4) Turchin P. et al. 2015. Seshat: The Global History Databank. Cliodynamics 6(1):77窶?107. 
-
-The views and conclusions contained in this document are those of the authors and should not be interpreted as representing the official positions, either expressed or implied, of the Seshat Databank, its collaborative scholarly community, or the Evolution Institute.
-
-The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-
-# Library
-
-The following packages must be installed
-
-```{r install-packages}
-install.packages("maps", repos = "http://cran.us.r-project.org")
-install.packages("plotrix", repos = "http://cran.us.r-project.org")
-install.packages("plyr", repos = "http://cran.us.r-project.org")
-
-```
-
-...then loaded
-
-```{r}
-library(maps)
-library(plotrix)
-# library(plyr) # But maybe shouldn't load this when loading dplyr for confirmatory analyses)
-library(tidyverse)
-
-```
-
+## Japanese references
 
 <!--chapter:end:index.Rmd-->
 
+
 # Precheck
 
-Make sure to use a full `polities.csv` file (if you re-run using the output the multiple imputation loop will run into bugs when it comes across NGAs with only one polity)
+Placeholder
 
-NB: Using shortened variables.csv file that only uses variables of interest to save computational time. If using full file, may need to renumber variables in Aggr.MI
 
-**Don't rerun this section unless it's a new scrape**
-  
-  
-```{r}
-# setwd("/Users/pesavage/Documents/Research/Oxford Seshat/Data/MoralizingGods")
-Section1 <- "Social Complexity variables"
-Section2 <- "Ritual variables"
-Section3 <- "Religion and Normative Ideology"
-source("precheck.R")
-```
+### Quick look at the raw data
+### delete duplicated entries 
+### Vars
+## dat filtering it into SCdat
+## Recode
+## inspect
 
 <!--chapter:end:01_precheck.Rmd-->
 
+# !diagnostics off
+
 # Polities
-
-
-**Start here if precheck.R is done**
   
 ```{r polities}
+# !diagnostics off
 
-Vars <- as.matrix(read.csv('variables.csv', header=TRUE))
-Vars <- Vars[Vars[,6]==Section1 | Vars[,6]==Section2 | Vars[,6]==Section3,] # Reduce the variables list to the Section set above
+Vars_df <- read_csv("input/variables.csv")
 
-Vars[,1] <- paste(Vars[,2],Vars[,1]) # Creating unique variable/section combinations
-
-Vars_df <- read_csv("variables.csv")
-
-polities <- 
-  read.csv('polities.csv', header=TRUE) %>% 
+polities_df <- 
+  polities_pre %>% 
   filter(!NGA %in% c("Crete", "Galilee", "Middle Ganga")) %>%  # Remove new NGAs
-  filter(!polID %in% c("IdCJBun", "IdKalin")) %>%  # Remove low-coverage polities causing bugs in C. Java)
-  filter(!polID %in% c("EsHabsb", "USIllinL", "GbEmpir", "InEInCo", "InBritP", "RuYakuL", "UsIroqL")) #Remove post-colonial polities (also see below for removing post-colonial polities from NGAs with only 2 polities)
+  filter(!PolID %in% c("IdCJBun", "IdKalin")) %>%  # Remove low-coverage polities causing bugs in C. Java)
+  filter(!PolID %in% c("EsHabsb", "USIllinL", "GbEmpir", "InEInCo", "InBritP", "RuYakuL", "UsIroqL")) #Remove post-colonial polities (also see below for removing post-colonial polities from NGAs with only 2 polities)
 
-NGAs <- levels(polities$NGA)
+NGAs <- levels(polities_df$NGA %>% as.factor()) # warnings maaaaay be okay.
+```
+
+# Multiple Imputations 
+
+## ConstrMI.R
+
+`ConstrMI.R` : from 30 NGAs in `polities`, select an NGA e.g., NGAs[1] = "Big Island Hawaii", filter SCdat and polities with that NGA, 
+
+modern version:
+
+input:
+  - `polities_df`: a tibble of polities from `polities.csv`, minus duplicate minus new NGAs,etc. A simple list of individual polities per row, with PolIdD and its start/end year. 299 x 11
+  - `SCdat`: a tibble of social complexity in 19,042 x 10, created with `01_precheck.Rmd`. NGA, Polity, Variable, Value From, Value To, Date From, Date To...
+  
+
+First, one value from a normal distribution created from ranged value (denoted by "range" in `Value Note` in `SCdat`) is used as value
+Then "disputed" and "uncertain" is dealt by picking one. Why not just use different values as is, embodying uncertainty?..
+
+```{r}
+
+SCdat %>% filter(`Date From` >= 1600)
+
+# a dumb but fast and readble way to mutate...
+df_disputed_uncertain<- SCdat %>%
+  filter(
+         `Value Note` %in% c("disputed", "uncertain")) %>% # includes both disputed and uncertain
+  group_by(Polity, Variable, `Date From`, `Date To`)  %>%
+  sample_n(1)  # Randomly sample from disputed and uncertain, eliminate extra rows
+
+df_ranged <- SCdat %>%
+  filter(`Value Note` == "range") %>%
+  mutate(
+    `Value From` = pmap(., function (`Value From`, `Value To`, ...) rnorm(n = 1, mean = (`Value From` + `Value To`) / 2, sd = abs(`Value To` - `Value From`) / (2*1.645))
+    ) # seems like pmap() is needed. reference: http://yoshidk6.hatenablog.com/entry/2018/08/06/154117
+  ) %>% unnest()
+
+df_else <- SCdat %>%
+  filter(!`Value Note` %in% c("disputed", "uncertain", "range"))
+
+df <- bind_rows(df_disputed_uncertain, df_ranged, df_else)
+df_min <- df %>%
+  select(NGA, Polity, Variable, `Value From`, `Date From`, `Date To`) %>%
+  rename(PolID = Polity,
+         Value = `Value From`,
+         Date = `Date From`,
+         DateTo = `Date To`) %>%
+  ungroup() %>%
+  ungroup() %>%
+  ungroup() %>%
+  ungroup() # 18823 x 6
+
+# OPTION B: seemed cooler, but apparently way slower probably because of if_else
+# a <- SCdat %>% 
+#   group_by(NGA) %>% 
+#   split(.$`Value Note` %in% c("disputed", "uncertain")) %>% 
+#   modify_at("TRUE", sample_n, 1) %>% 
+#   bind_rows()
+#   mutate(`Value From` = if_else(`Value Note` == "range", 
+#                                 )pmap(., function (`Value From`, `Value To`, ...) rnorm(n = 1, mean = (`Value From` + `Value To`) / 2, sd = abs(`Value To` - `Value From`) / (2*1.645))),
+#                                 .)) # extremely slow...
+                                
+
+# OPTION C: `case_when()` extremely slow. took 3min
+# df  %>% 
+# mutate(
+#   value = case_when(
+#     `Value Note` == "range" ~ rnorm(1, mean = (`Value From` + `Value To`) / 2, sd = abs(`Value To` - `Value From`) / (2*1.645)), 
+#     TRUE ~ `Value From` # Catch all statement, equivalent to `Value Note` != "range"
+#   )
+# ) %>% View()
+
+```
+
+# construct output
+
+Join everything together. 
+
+input:
+
+- `df_min`: actual values of polities' social complexity variables.
+- `polities_df`: to retrieve the range of years the polities were there.
+- 
+
+```{r}
+
+df_join <-  
+  inner_join(
+    df_min, 
+    polities_df,
+    by = c("NGA", "PolID")
+  ) %>%  # 18,823 x 15. drop NGA because polities_df has only one NGA for a PolID, whilst some PolIDs such as AfGrBct extend to other NGAs, hence produces many NA rows.
+  group_by(PolID) %>% 
+  mutate(
+    PolStartC = (min(Start) / 100) %>% ceiling(), # previously `tmin`. the first century the polity has already started. e.g., if 99CE, 1. 100CE, 1. 101CE, 2.
+    PolEndC = (max(End) / 100) %>% floor() # previously `tmmax`. the century the polity ended.
+  ) %>% 
+  mutate(centuries = map2(PolStartC, PolEndC, seq)) %>% 
+  unnest() %>% 
+  mutate(
+    t = centuries * 100,
+    PolStart = PolStartC * 100,
+    PolEnd = PolEndC * 100
+  ) %>% # convert centuries back to years
+  select(-(World.Region:centuries)) %>% # tidying columns
+  ungroup() %>% # ungroup before filtering
+  filter(Start <= t & End >= t) %>% 
+  filter((is.na(DateTo) && !is.na(Date) && (round(Date, -2) == t)) | (!is.na(Date) && !is.na(DateTo) && between(t, Date, DateTo)) | is.na(Date))# filter our if t is not close to Date, for single date datapoints, OR(|, do not use ||)　filter out if t is out of Date-DateTo range, for ranged date datapoints
+# df_join 36,982 x 12
+
+```
+
+
+## inspect
+
+```{r}
+df_inspect <- df_join %>% 
+  filter(NGA == "Sogdiana", Variable == "Bureaucracy characteristics Full-time bureaucrats")
+df_inspect2 <- df_join %>% 
+  filter(NGA == "Deccan")
+
+output %>%  as_tibble() %>%  
+  filter(NGA == "Sogdiana") %>% View()
+]
+
+df_inspect %>% 
+  ggplot(aes(x = t, y = Value, colour = PolID)) +
+  geom_point() +
+  geom_line()
+```
+
+# construct output
+
+social complexity variable names in `df_join` (`df_join$Variables`) are joined name of subsection and variable in `Vars_df`.
+
+```{r}
+
+# 
+Vars_df_minimum <- 
+  Vars_df %>% 
+  mutate(Variable = paste(Subsection, Variable)) %>% 
+  select(Variable, ShortName)
+```
+
+
+now join them together 
+
+```{r}
+df_join_shortname <-
+  left_join(df_join, 
+            Vars_df_minimum, 
+            by = "Variable") %>% 
+  mutate(Variable = ShortName,
+         ShortName = NULL) # 29191 * 12
+```
+
+then `spread()`.
+
+```{r}
+unique(df_join_shortname$Variable) %>% length()
+
+df_spread <- 
+  df_join_shortname %>% 
+  spread(key = Variable, value = Value) %>% 
+  mutate(PropCoded = (51 - (select(., AdmLev:WRecord) %>% is.na() %>% rowSums())) / 51
+         ) %>% # this isn't working, ISSUE
+  arrange(NGA, PolID) # 820 * 77. output's got 817 * 98...
+
+  df_spread  %>% select(AdmLev:WRecord) %>% is.na() %>% rowSums()
+```
+
+inspect by table:
+
+```{r}
+output_df <- output %>% as_tibble
+
+full_join(output_df %>% select(NGA, PolID, Date), 
+          df_spread %>% select(NGA, PolID, t),
+          by = c("Date" = "t", "PolID")) %>% View()
+```
+
+The `df_spread` got 3 extra rows that aren't available in `output`: IrQajar and TrOttm5 for `t` = 1800 and 1900. ISSUE.
+
+
+inspect by plot:
+
+```{r fig.height = 20, fig.width = 20}
+
+output_df %>% 
+  filter(NGA == "Deccan") %>%
+  gather(key = Variable, value = Value, -PolID, -NGA, -Date, -PropCoded) %>% 
+  ggplot(aes(x = Date, y = Value, colour = PolID)) +
+  geom_point() +
+  geom_line() +
+  scale_colour_viridis_d() +
+  facet_wrap(~Variable, scale = "free_y") 
+
+
+df_join_short %>% filter(NGA == "Deccan") %>%
+  ggplot(aes(x = t, y = Value, colour = PolID)) +
+  geom_point() +
+  geom_line() +
+  scale_colour_viridis_d() +
+  facet_wrap(~Variable, scale = "free_y") 
+  # theme_tufte()
+
+```
+
+
+
+## Aggregate
+
+```{r}
+
+```
+
+
+```{r}
 
 nrep <- 20
 ImpDatRepl <- matrix(NA, nrow=0, ncol=0) 
@@ -124,7 +281,6 @@ for(irep in 1:nrep){
   ImpDatRepl <- rbind(ImpDatRepl,ImpDat)
 }
 ```
-
 
 Remove polity-dates that didn't yield 20 repl and post-colonial polities that couldn't be removed from multiple imputation due to bugs with only 1 polity/NGA
 
@@ -141,8 +297,6 @@ write.csv(polities, file="polities.csv",  row.names=FALSE)
 ImpDatRepl <- ImpDatRepl[ImpDatRepl$PolID != "InGaroL",] # removing here because it seemed to create bugs when you have only 1 polity in an NGA, so couldn't remove earlier
 ImpDatRepl <- ImpDatRepl[ImpDatRepl$PolID != "CnHChin",] # removing here because it seemed to create bugs when you have only 1 polity in an NGA, so couldn't remove earlier
 ImpDatRepl <- ImpDatRepl[ImpDatRepl$PolID != "PgOrokL",] # removing here because it seemed to create bugs when you have only 1 polity in an NGA, so couldn't remove earlier
-
-
 
 dat_temp <- ImpDatRepl
 for(i in 1:nrow(polities)){
@@ -161,189 +315,34 @@ for(i in 1:nrow(polities)){
 }
 ImpDatRepl <- dat_temp[dat_temp$irep!=-99999,]
 
-
-
 write.csv(ImpDatRepl, file="ImpDatRepl.csv",  row.names=FALSE)
 #  end of the new scrape section
 ```
 
 
-
-
 <!--chapter:end:02_polities.Rmd-->
+
 
 # Run PCA on ImpDat
 
-```{r pca}
+Placeholder
 
-ImpDatRepl <- read.csv('ImpDatRepl.csv', header=TRUE)
-ImpDat <- ImpDatRepl[ImpDatRepl$irep==1,]
-nrep <- ImpDatRepl$irep[nrow(ImpDatRepl)]
-PC1 <- matrix(NA,(length(ImpDat[,1])),0)
-Rotations <- matrix(NA,0,9)
-PropVar <- matrix(NA,0,9)
-for(irep in 1:nrep){
-  print(irep)
-  ImpDat <- ImpDatRepl[ImpDatRepl$irep==irep,5:13] # Replace "5:13" with "5:8" and "9:13" for confirmatory analyses (changing "9" in "Rotations <- matrix(NA,0,9)" and "PropVar <- matrix(NA,0,9)" to "4" or "5" as appropriate)
-  res <- prcomp(ImpDat, scale=TRUE)
-  print(summary(res))
-  PCA<-predict(res)
-  
-  PC1 <- cbind(PC1,PCA[,1])
-  Rotations <- rbind(Rotations,res$rotation)
-  PropVar <- rbind(PropVar,summary(res)$importance[2,])
-}
-
-write.csv(PC1, file="PC1.csv",  row.names=FALSE)
-write.csv(Rotations, file="Rotations.csv",  row.names=TRUE)
-write.csv(PropVar, file="PropVar.csv",  row.names=FALSE)
-
-rm(AggrDat, ImpDat, PCA, res)
-```
-
-# gPC1.R
-
-Calculate PC1 trajectories +/- 2SD conf int [lower, mean, upper]
-
-```{r}
-
-# setwd("C:/Users/Peter Turchin/Google Drive/2.Seshat/1.R/PCA-MI")
-PC1 <- read.table("PC1.csv", sep=",", header=TRUE)
-
-PC1[,5] <- -(PC1[,5]) # NB: It is possible that the signs may be arbitrarily flipped in different PCA runs, in which case used this type of code to correct arbitrarily flipped signs
-
-
-PC1 <- (PC1-min(PC1))/max(PC1-min(PC1))  # Scale PC1 to between 0-1
-dat <- ImpDatRepl[ImpDatRepl$irep==1,]
-dat[,1] <- as.character(dat[,1])
-dat[,2] <- as.character(dat[,2])
-dat$Mean <- apply(PC1,1,mean)
-dat$Lower <- dat$Mean - 2*apply(PC1,1,sd)
-dat$Upper <- dat$Mean + 2*apply(PC1,1,sd)
-
-output <- read.table("MIoutput.csv", sep=",", header=TRUE)
-dt <- output[,1:length(dat)]
-dt[,1] <- as.character(dt[,1])
-dt[,2] <- as.character(dt[,2])
-dt[,4:length(dat)] <- NA
-names(dt) <- c("NGA","PolID","Time","Mean","Lower","Upper")
-names(dt) <- names(dat)
-
-for(i in 1:length(dat[,1])){
-  j <- 1:length(dt[,1])
-  j <- j[dt[,1]==dat[i,1] & dt[,2]==dat[i,2] & dt[,3]==dat[i,3]]
-  dt[j,] <- dat[i,]
-}
-for(i in 1:length(dt[,1])){   if(is.na(dt[i,4])){dt[i,4:length(dat)] <- dt[i-1,4:length(dat)]} }
-dat <- dt
-
-write.csv(dat, file="PC1_traj.csv",  row.names=FALSE)
-```
 
 
 <!--chapter:end:03_pca.Rmd-->
 
+
 # Plot
 
-Graphs PCA results for Figure 3 of the PCA article. (see Figure3.R for more code) 
-and for the Suppl Materials: all regions
+Placeholder
 
-
-```{r plot-pca}
-
-# setwd("C:/Users/Peter Turchin/Google Drive/2.Seshat/1.R/PCA-MI")
-dat <- read.table("PC1_traj.csv", sep=",", header=TRUE)
-NGAs <- c("Upper Egypt","Middle Yellow River Valley")
-
-colors <- c("red","blue","darkgreen","brown","tan","black","orange","cyan","darkgrey")
-colors <- c(colors,colors,colors)
-shade_colors <- c("pink","lightblue","lightgreen","tan")
-x_ends <- c(-5000,2000)
-y_ends <- c(0,1)
-plot(x_ends, y_ends, "n", xlim = x_ends, ylim=y_ends, xlab="year", ylab="PC1", main = "")
-legend("topleft", NGAs, lty=1, lwd=3, bty="n", col=colors)
-
-for(j in 1:length(NGAs)){
-  NGA <- NGAs[j]
-  gdat <- dat[dat[,1]==NGA,]
-  polygon(x=c(gdat[,3],rev(gdat[,3])),y=c(gdat$Upper,rev(gdat$Lower)), col=shade_colors[j], border=NA)
-  lines(gdat[,3],gdat$Mean, lwd=3, col=colors[j])
-  lines(gdat[,3],gdat[,5], lwd=1, lty = 2, col=colors[j])
-  lines(gdat[,3],gdat[,6], lwd=1, lty = 2, col=colors[j])
-  text(x=x_ends[1], y=(y_ends[2] - .5*j), NGA, col=colors[j], pos=4)
-}
-
-```
 
 ## Merge PC1_traj.csv with other key info
-
-
-```{r}
-
-dat <- read.table("PC1_traj.csv", sep=",", header=TRUE)
-dat2 <- read.table("polities.csv", sep=",", header=TRUE)
-dat <- merge(dat,dat2,by="PolID")
-dat2 <- read.table("NGAcoords.csv", sep=",", header=TRUE)
-dat <- merge(dat,dat2,by.x="NGA.y",by.y="NGA")
-library(plyr)
-dat<-rename(dat, c("NGA.y" = "NGA"))
-dat<-rename(dat, c("NGA.x" = "OriginalNGA"))
-dat<-dat[order(dat$NGA, dat$Time),]
-dat<-subset(dat,dat$Time>=dat$Start & dat$Time<=dat$End)
-write.csv(dat, file="PC1_traj_merged.csv",  row.names=FALSE)
-```
-
-
-# Run pre-/post-moralizing gods analyses
-
-```{r}
-source("BigGodAnalysesEditedV2.R")
-
-```
-
-
-
-# Run logistic regression
-
-```{r}
-source("RegrDat.R")
-
-```
-
-
 ## FULL MODEL
-
-```{r}
-RD1 <- RegrDat[is.na(RegrDat$Lag1) == FALSE,]
-RD2 <- RD1[is.na(RD1$Lag2) == FALSE,]
-LogistRegrDat = as.data.frame(cbind(RD2$MG,RD2[,c(36,51:54)]))
-source("LogistRegr.R")
-```
-
-
-
-
 ## Creat Fig. 1 map using manually created map.csv file
-
-```{r}
-source("Seshat_BG_map.r")
-
-```
-
-
 
 <!--chapter:end:04_plot.Rmd-->
 
----
-title: "Moralizing Gods"
-author: ["Minoru Matsui^[Fujitsu Design]"]
-date: "`r Sys.Date()`"
-site: bookdown::bookdown_site
-documentclass: book
-link-citations: yes
-description: "Moralizing Gods paper reproduction"
-monofont: "Source Code Pro"
----
 
 # Introduction
 
@@ -351,137 +350,9 @@ Placeholder
 
 
 ## Licence
-
-<!--chapter:end:index.Rmd-->
-
-# Precheck
-
-Make sure to use a full `polities.csv` file (if you re-run using the output the multiple imputation loop will run into bugs when it comes across NGAs with only one polity)
-
-NB: Using shortened variables.csv file that only uses variables of interest to save computational time. If using full file, may need to renumber variables in Aggr.MI
-
-**Don't rerun this section unless it's a new scrape**
-  
-  
-```{r}
-# setwd("/Users/pesavage/Documents/Research/Oxford Seshat/Data/MoralizingGods")
-Section1 <- "Social Complexity variables"
-Section2 <- "Ritual variables"
-Section3 <- "Religion and Normative Ideology"
-source("precheck.R")
-```
-
-<!--chapter:end:01_precheck.Rmd-->
-
-
-# Polities
-
-Placeholder
-
-
-
-<!--chapter:end:02_polities.Rmd-->
-
-
-# Run PCA on ImpDat
-
-Placeholder
-
-
-
-<!--chapter:end:03_pca.Rmd-->
-
-# Plot
-
-Graphs PCA results for Figure 3 of the PCA article. (see Figure3.R for more code) 
-and for the Suppl Materials: all regions
-
-
-```{r plot}
-
-# setwd("C:/Users/Peter Turchin/Google Drive/2.Seshat/1.R/PCA-MI")
-dat <- read.table("PC1_traj.csv", sep=",", header=TRUE)
-NGAs <- c("Upper Egypt","Middle Yellow River Valley")
-
-colors <- c("red","blue","darkgreen","brown","tan","black","orange","cyan","darkgrey")
-colors <- c(colors,colors,colors)
-shade_colors <- c("pink","lightblue","lightgreen","tan")
-x_ends <- c(-5000,2000)
-y_ends <- c(0,1)
-plot(x_ends, y_ends, "n", xlim = x_ends, ylim=y_ends, xlab="year", ylab="PC1", main = "")
-legend("topleft", NGAs, lty=1, lwd=3, bty="n", col=colors)
-
-for(j in 1:length(NGAs)){
-  NGA <- NGAs[j]
-  gdat <- dat[dat[,1]==NGA,]
-  polygon(x=c(gdat[,3],rev(gdat[,3])),y=c(gdat$Upper,rev(gdat$Lower)), col=shade_colors[j], border=NA)
-  lines(gdat[,3],gdat$Mean, lwd=3, col=colors[j])
-  lines(gdat[,3],gdat[,5], lwd=1, lty = 2, col=colors[j])
-  lines(gdat[,3],gdat[,6], lwd=1, lty = 2, col=colors[j])
-  text(x=x_ends[1], y=(y_ends[2] - .5*j), NGA, col=colors[j], pos=4)
-}
-
-```
-
 ## Merge PC1_traj.csv with other key info
-
-
-```{r}
-
-dat <- read.table("PC1_traj.csv", sep=",", header=TRUE)
-dat2 <- read.table("polities.csv", sep=",", header=TRUE)
-dat <- merge(dat,dat2,by="PolID")
-dat2 <- read.table("NGAcoords.csv", sep=",", header=TRUE)
-dat <- merge(dat,dat2,by.x="NGA.y",by.y="NGA")
-library(plyr)
-dat<-rename(dat, c("NGA.y" = "NGA"))
-dat<-rename(dat, c("NGA.x" = "OriginalNGA"))
-dat<-dat[order(dat$NGA, dat$Time),]
-dat<-subset(dat,dat$Time>=dat$Start & dat$Time<=dat$End)
-write.csv(dat, file="PC1_traj_merged.csv",  row.names=FALSE)
-```
-
-
-# Run pre-/post-moralizing gods analyses
-
-```{r}
-source("BigGodAnalysesEditedV2.R")
-
-```
-
-
-
-# Run logistic regression
-
-```{r}
-source("RegrDat.R")
-
-```
-
-
 ## FULL MODEL
-
-```{r}
-RD1 <- RegrDat[is.na(RegrDat$Lag1) == FALSE,]
-RD2 <- RD1[is.na(RD1$Lag2) == FALSE,]
-LogistRegrDat = as.data.frame(cbind(RD2$MG,RD2[,c(36,51:54)]))
-source("LogistRegr.R")
-```
-
-
-
-
 ## Creat Fig. 1 map using manually created map.csv file
-
-```{r}
-source("Seshat_BG_map.r")
-
-```
-
-
-
-<!--chapter:end:04_plot.Rmd-->
-
 
 <!--chapter:end:moralizing_gods.Rmd-->
 

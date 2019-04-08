@@ -1,38 +1,32 @@
+## almost identical to Nat paper origina, apart from renewed paths.takes 30 sec or so.
+
 # Checks Soc Complx data from exportdat.csv for error
-polities_old <- read.csv('input/polities.csv', header=TRUE)
-polities_old <- polities_old[polities_old$Dupl=="n",]
+polities <- read.csv('input/polities.csv', header=TRUE)
+polities <- polities[polities$Dupl=="n",]
+Vars <- as.matrix(read.csv('input/variables.csv', header=TRUE))
+SCdat <- matrix(nrow = 0, ncol = 0)
+dat <- read.table('input/exportdat.csv', sep=",", header=TRUE, quote = "", colClasses = "character")
+dat <- dat[dat$Section==Section1 | dat$Section==Section2 | dat$Section==Section3,] # Section is set in !MI.R
 
+Vars[,1] <- paste(Vars[,2],Vars[,1]) #Creating unique variable/section combinations
+dat[,5] <- paste(dat[,4],dat[,5]) #Creating unique variable/section combinations
 
-
-Vars_old <- as.matrix(read.csv('input/variables.csv', header=TRUE))
-SCdat_old <- matrix(nrow = 0, ncol = 0)
-dat_old <- read.table('input/exportdat.csv', sep=",", header=TRUE, quote = "", colClasses = "character")
-dat_old <- dat_old[dat_old$Section==Section1 | dat_old$Section==Section2 | dat_old$Section==Section3,] # Section is set in !MI.R
-
-Vars_old[,1] <- paste(Vars_old[,2],Vars_old[,1]) #Creating unique variable/section combinations
-dat_old[,5] <- paste(dat_old[,4],dat_old[,5]) #Creating unique variable/section combinations
-
-for(i in 1:length(Vars_old[,1])){
-  var <- Vars_old[i,1]
-  dt <- dat_old[dat_old$Variable==var,]
-  SCdat_old <- rbind(SCdat_old,dt)
+for(i in 1:length(Vars[,1])){
+  var <- Vars[i,1]
+  dt <- dat[dat$Variable==var,]
+  SCdat <- rbind(SCdat,dt)
 }
-dim(SCdat_old)
+dat <- SCdat
+SCdat <- matrix(nrow = 0, ncol = 0)
 
-
-dat_old <- SCdat_old
-SCdat_old <- matrix(nrow = 0, ncol = 0)
-
-for(i in 1:nrow(polities_old)){
-  dt <- dat_old[dat_old$Polity==polities_old$PolID[i],]
-  SCdat_old <- rbind(SCdat_old,dt)
+for(i in 1:nrow(polities)){
+  dt <- dat[dat$Polity==polities$PolID[i],]
+  SCdat <- rbind(SCdat,dt)
 }
-dim(SCdat_old)
 
-SCdat_old <- SCdat_old[,c(1,2,5,6,7,8,9,10,11,12)]
-row.names(SCdat_old) <- NULL
-SCdat_old$Value.From %>% unique()
-SCdat_old$Value.To %>% unique()
+SCdat <- SCdat[,c(1,2,5,6,7,8,9,10,11,12)]
+row.names(SCdat) <- NULL
+
 # Convert categorical values to numbers. Ignore warnings: they will be taken care off in the next step -- in errors
 for(i in 1:nrow(SCdat)){
   for(j in 4:5){
@@ -106,8 +100,8 @@ for(i in 1:nrow(dat)){
 }
 errors <- rbind(errors,dat[is.na(dat[,7]),])
 
-write.csv(errors, file="errors.csv",  row.names=FALSE)
-write.csv(SCdat, file="SCdat.csv",  row.names=FALSE)
+write.csv(errors, file="output/original/errors.csv",  row.names=FALSE)
+write.csv(SCdat, file="output/original/SCdat.csv",  row.names=FALSE)
 
 rm(i,j,var,dat,dt,datNA,a,polities,Vars)
 
@@ -129,11 +123,3 @@ rm(i,j,var,dat,dt,datNA,a,polities,Vars)
 #}
 #write.csv(extras, file="extras.csv",  row.names=FALSE)
 #write.csv(missing, file="missing.csv",  row.names=FALSE)
-
-
-
-
-
-
-
-

@@ -4,16 +4,14 @@
   
 ```{r polities}
 # !diagnostics off
-
-Vars_df <- read_csv("input/variables.csv")
-
 polities_df <- 
   polities_pre %>% 
   filter(!NGA %in% c("Crete", "Galilee", "Middle Ganga")) %>%  # Remove new NGAs
   filter(!PolID %in% c("IdCJBun", "IdKalin")) %>%  # Remove low-coverage polities causing bugs in C. Java)
   filter(!PolID %in% c("EsHabsb", "USIllinL", "GbEmpir", "InEInCo", "InBritP", "RuYakuL", "UsIroqL")) #Remove post-colonial polities (also see below for removing post-colonial polities from NGAs with only 2 polities)
+# 299 x 11
 
-NGAs <- levels(polities_df$NGA %>% as.factor()) # warnings maaaaay be okay.
+NGAs_tidy <- levels(polities_df$NGA %>% as.factor()) # warnings maaaaay be okay.
 ```
 
 # Multiple Imputations 
@@ -25,8 +23,8 @@ NGAs <- levels(polities_df$NGA %>% as.factor()) # warnings maaaaay be okay.
 modern version:
 
 input:
-  - `polities_df`: a tibble of polities from `polities.csv`, minus duplicate minus new NGAs,etc. A simple list of individual polities per row, with PolIdD and its start/end year. 299 x 11
-  - `SCdat`: a tibble of social complexity in 19,042 x 10, created with `01_precheck.Rmd`. NGA, Polity, Variable, Value From, Value To, Date From, Date To...
+  - `polities_df`: a tibble of polities from `polities.csv`, minus duplicate minus new NGAs,etc. A simple list of individual polities per row, with PolID and their start/end year. 299 x 11
+  - `SCdat_df`: a tibble of social complexity in 19,042 x 10, created with `01_precheck.Rmd`. NGA, Polity, Variable, Value From, Value To, Date From, Date To...
   
 
 First, one value from a normal distribution created from ranged value (denoted by "range" in `Value Note` in `SCdat`) is used as value
@@ -34,23 +32,21 @@ Then "disputed" and "uncertain" is dealt by picking one. Why not just use differ
 
 ```{r}
 
-SCdat %>% filter(`Date From` >= 1600)
-
 # a dumb but fast and readble way to mutate...
-df_disputed_uncertain<- SCdat %>%
+df_disputed_uncertain<- SCdat_df %>%
   filter(
          `Value Note` %in% c("disputed", "uncertain")) %>% # includes both disputed and uncertain
   group_by(Polity, Variable, `Date From`, `Date To`)  %>%
   sample_n(1)  # Randomly sample from disputed and uncertain, eliminate extra rows
 
-df_ranged <- SCdat %>%
+df_ranged <- SCdat_df %>%
   filter(`Value Note` == "range") %>%
   mutate(
     `Value From` = pmap(., function (`Value From`, `Value To`, ...) rnorm(n = 1, mean = (`Value From` + `Value To`) / 2, sd = abs(`Value To` - `Value From`) / (2*1.645))
     ) # seems like pmap() is needed. reference: http://yoshidk6.hatenablog.com/entry/2018/08/06/154117
   ) %>% unnest()
 
-df_else <- SCdat %>%
+df_else <- SCdat_df %>%
   filter(!`Value Note` %in% c("disputed", "uncertain", "range"))
 
 df <- bind_rows(df_disputed_uncertain, df_ranged, df_else)
@@ -63,7 +59,7 @@ df_min <- df %>%
   ungroup() %>%
   ungroup() %>%
   ungroup() %>%
-  ungroup() # 18823 x 6
+  ungroup() 
 
 # OPTION B: seemed cooler, but apparently way slower probably because of if_else
 # a <- SCdat %>% 
@@ -84,7 +80,7 @@ df_min <- df %>%
 #     TRUE ~ `Value From` # Catch all statement, equivalent to `Value Note` != "range"
 #   )
 # ) %>% View()
-
+dim(df_min) # 18823 x 6
 ```
 
 # construct output
@@ -93,8 +89,8 @@ Join everything together.
 
 input:
 
-- `df_min`: actual values of polities' social complexity variables.
-- `polities_df`: to retrieve the range of years the polities were there.
+- `df_min`: a tibble, actual values of polities' social complexity variables.
+- `polities_df`: a tibble, to retrieve the range of years the polities were there.
 - 
 
 ```{r}
@@ -128,6 +124,13 @@ df_join <-
 
 ## inspect
 
+`output` made with ConstrMI.R and `df_join` made here should be loosely identical, apart from the followings: 
+
+1. minor `sample_n(1)` sampling errors, 
+1. variable dispersion with `rnorm()`, and 
+1. recoding corrections.
+
+
 ```{r}
 df_inspect <- df_join %>% 
   filter(NGA == "Sogdiana", Variable == "Bureaucracy characteristics Full-time bureaucrats")
@@ -158,36 +161,93 @@ Vars_df_minimum <-
 ```
 
 
-now join them together and `spread()`.
+now join them together 
+
 ```{r}
-df_join_short <-
+df_join_shortname <-
   left_join(df_join, 
             Vars_df_minimum, 
             by = "Variable") %>% 
   mutate(Variable = ShortName,
          ShortName = NULL) # 29191 * 12
-df_spread <- 
-  df_join_short %>% 
-  spread(key = Variable, value = Value) %>% 
-  # mutate(PropCoded = sum(is.na(AdmLev:WRecord))) %>% # this isn't working, ISSUE
-  arrange(NGA) # 820 * 77. output's got 817 * 98...
 ```
+
+then `spread()`.
+
+```{r}
+df_spread <- 
+  df_join_shortname %>% 
+  spread(key = Variable, value = Value) %>% 
+  arrange(NGA, t) # 820 * 77. output's got 817 * 98...
+```
+
+### PropCoded
+
+Now we want to calculate `PropCoded`, the proportion of variables actually recorded out of the 51 Social Complexity variables in `Vars_df`. For example, when `NGA == "Deccan"`, `PolID == "InSataL"` in `t == 100` has got 24 `NA` SC variables, PropCoded = (51 - 24) / 51.
+
+```{r}
+PropCoded_col <- df_spread %>% 
+  select(
+    Vars_df %>% 
+      filter(Section == "Social Complexity variables", # there are other columns other than SC variables, e.g., freqs in `df_spread`.
+             ShortName != "HeredStatus" # HeredStatus is in Vars_df, but none are recorded.
+      ) %>% 
+      .$ShortName 
+  ) %>% 
+  transmute(PropCoded = (ncol(.) - ( is.na(.) %>% rowSums())) / ncol(.)
+  ) 
+
+df_spread_prop <- 
+  bind_cols(df_spread, PropCoded_col) %>% 
+  select(NGA, PolID, PropCoded, everything()) # https://github.com/tidyverse/dplyr/issues/1188
+output_df <- output %>% 
+  as_tibble %>% 
+  mutate(
+    Date = as.numeric(Date),
+    PropCoded = as.numeric(PropCoded)
+  )
+```
+
+### Verify PropCoded
+
+Verify `PropCoded` in the paper is identical (or at least close enough) to the ones in my code.
+
+Visualize it: ideally, points should be all lined up to `y = x`.
+
+```{r}
+left_join(
+  df_spread_prop %>% select(t, NGA, PolID, PropCoded), 
+  output_df %>% select(Date, NGA, PolID, PropCoded),
+  by = c("t" = "Date", "NGA", "PolID")
+) %>% #View()
+  ggplot(aes(x = PropCoded.x, y = PropCoded.y / 100)) +
+  geom_count(alpha = 0.3) +
+  scale_size_area() +
+  geom_abline(slope = 1, intercept = 0) +
+  coord_fixed()
+
+# some entries don't fit. why.
+df_spread_prop %>% filter(NGA == "Kansai") %>% View()
+output_df %>% filter(NGA == "Kansai") %>% View()
+
+``` 
+
 
 inspect by table:
 
 ```{r}
-output_df <- output %>% as_tibble
-
-full_join(output_df %>% select(NGA, PolID, Date), 
+full_join(output_df %>% select(NGA, PolID, Date)), 
           df_spread %>% select(NGA, PolID, t),
-          by = c("Date" = "t", "PolID")) %>% View()
+          by = c("Date" = "t", "PolID")) 
+Vars_df %>% filter(Section == "Social Complexity variables") %>% arrange(ShortName) %>% View()
 ```
+
+The `df_spread` got 3 extra rows not contained in `output`: IrQajar and TrOttm5 for `t` = 1800 and 1900. ISSUE.
 
 
 inspect by plot:
 
 ```{r fig.height = 20, fig.width = 20}
-
 output_df %>% 
   filter(NGA == "Deccan") %>%
   gather(key = Variable, value = Value, -PolID, -NGA, -Date, -PropCoded) %>% 
@@ -197,7 +257,6 @@ output_df %>%
   scale_colour_viridis_d() +
   facet_wrap(~Variable, scale = "free_y") 
 
-
 df_join_short %>% filter(NGA == "Deccan") %>%
   ggplot(aes(x = t, y = Value, colour = PolID)) +
   geom_point() +
@@ -205,6 +264,14 @@ df_join_short %>% filter(NGA == "Deccan") %>%
   scale_colour_viridis_d() +
   facet_wrap(~Variable, scale = "free_y") 
   # theme_tufte()
+
+```
+
+
+
+## Aggregate
+
+```{r}
 
 ```
 

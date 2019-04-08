@@ -56,9 +56,7 @@ polities_pre %>%
 `Vars` is a 225 row variables of complexity such as population, professional soldiers etc.
 
 ```{r}
-Vars_old <- as.matrix(read.csv('input/variables.csv', header=TRUE))
-
-Vars <- read_csv("input/variables.csv") %>% # originally as.matrix()
+Vars_df <- read_csv("input/variables.csv") %>% # originally as.matrix()
   mutate(Variable = paste(Subsection, Variable)) # Creating unique variable/section combinations
 # Vars[,1] <- paste(Vars[,2],Vars[,1]) 
 ```
@@ -75,15 +73,15 @@ The nrow() of the `dat` should shrink down to 25813 then 21025. Almost all `Comm
 
 ```{r}
 # dat_old <- read.table('input/exportdat.csv', sep=",", header=TRUE, quote = "", colClasses = "character")
-dat <- 
+dat_tidy <- 
   read_csv("input/exportdat.csv", col_types = cols(`Value To` = col_character())) %>%  # without col_types, returns parsing failures on row 5342, 18249, 18750. maybe col_double is more suitable? DUNNO
   filter(Section %in% c("Social Complexity variables",  "Ritual variables", "Religion and Normative Ideology"))  %>%   # Section is set in !MI.R
   mutate(Variable = paste(Subsection, Variable))  %>% # ISSUE: str_c does not work: "a" + NA = NA. 
-  filter(Variable %in% Vars$Variable) %T>% {print(dim(.))} %>%  
+  filter(Variable %in% Vars_df$Variable) %T>% {print(dim(.))} %>%  
   filter(Polity %in% polities_pre$PolID) %T>% {print(dim(.))} %>% 
   select(-Section, -Subsection, -Comment)
 
-row.names(dat) <- NULL # at the first glance i dunno why we need this... we'll get back to this ISSUE
+# row.names(dat) <- NULL # at the first glance i dunno why we need this... we'll get back to this ISSUE
 # nrow(SCdat) - sum(is.na(SCdat$Comment))
 ```
 
@@ -94,7 +92,7 @@ Convert categorical values to numbers. Ignore warnings: they will be taken care 
 
 ```{r}
 
-dat_recoded <- dat
+dat_recoded <- dat_tidy
 
 dat_recoded$`Value From` <- 
   dat_recoded$`Value From` %>% 
@@ -141,9 +139,9 @@ test if there's still character
 ```{r}
 
 # inspect old
-dat$`Value From` %>% 
+dat_tidy$`Value From` %>% 
 str_detect(letters) %>% sum() # 5096 rows contain letters.
-dat$`Value To` %>% 
+dat_tidy$`Value To` %>% 
 str_detect(letters) %>% sum() # NA
 
 # inspect new
@@ -158,18 +156,20 @@ none.
 
 
 ```{r}
-SCdat <- dat_recoded %>%
+SCdat_df <- dat_recoded %>%
   mutate(`Value From` = as.numeric(as.character(dat_recoded$`Value From`)),
          `Value To` = as.numeric(as.character(dat_recoded$`Value To`))) %>%  # Convert characters "100" to `100` by `as.character() %>% as.numeric()`. not sure if this is doing fine
   drop_na(`Value From`) %>% 
    mutate(`Date From` = `Date From` %>% str_replace("([0-9]+)BCE", "-\\1") %>% str_replace("([0-9]+)CE", "\\1") %>% as.integer() , 
          `Date To` = `Date To` %>% str_replace("([0-9]+)BCE", "-\\1") %>% str_replace("([0-9]+)CE", "\\1") %>% as.integer()
          ) # Change BCE to negative years and remove CE. 
+
+# NAs introduced by coersion. is this okay? ISSUE
 ```
 
-Let's take a quick look at `SCdat`.
+Let's take a quick look at the new `SCdat_df`.
 ```{r scdat-quicklook, fig.height = 20, fig.width = 20}
-SCdat %>% 
+SCdat_df %>% 
   filter(NGA == "Kansai") %>% 
   ggplot(aes(x = `Date From`, y = `Value From`, colour = `Date From`)) +
   geom_point() +
