@@ -114,7 +114,10 @@ df_join <-
     df_min, 
     polities_df,
     by = c("NGA", "PolID")
-  ) %>%  # 18,823 x 15. 
+  ) 
+dim(df_join) # 15156 x 15. 
+df_centuries_redundant <- 
+  df_join %>% 
   group_by(PolID) %>% 
   mutate(
     PolStartC = (min(Start) / 100) %>% ceiling(), 
@@ -293,7 +296,7 @@ output_df %>% filter(NGA == "Kansai") %>% View()
 
 
 ```{r identical-police}
-df_identical <- 
+df_discrepancies <- 
   left_join(
     df_spread_prop, 
     output_df %>% select(Date, NGA, PolID, PropCoded),
@@ -301,7 +304,7 @@ df_identical <-
   ) %>%
   filter(round(PropCoded.x * 100, 1) != PropCoded.y) 
 
-df_identical%>% 
+df_discrepancies %>% 
   select(PropCoded.x, PropCoded.y, everything()) %>% 
   mutate(PropCoded.x = round(PropCoded.x * 100, 1)) %>% 
   View() # 27 rows

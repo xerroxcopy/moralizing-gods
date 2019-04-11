@@ -11,7 +11,6 @@ this is an appendix for `02_polities.Rmd` dedicated just for inspecting the prod
 ## df_min
 
 ```{r}
-
 df_disputed_uncertain %>% View() # SyCaalUm available
 df %>% filter(NGA == "Susiana") %>%  View() # available
 df_min %>% filter(NGA == "Susiana") %>%  View() # available
@@ -34,9 +33,10 @@ aaaaaa
 
 
 ```{r}
+SCdat_df %>% filter(Polity == "IrSasn1") # 201 entries
+SCdat_df %>% filter(Polity == "IrSasn1", Variable == "Law Formal legal code") # Kachi, Sogdiana, Susiana, all 0 AND 1, disputed./
 df_disputed_uncertain %>% filter(Polity == "IrSasn1") # not available for Susiana, but in sogdiana it is available. law formal leg code 0.
 df %>% filter(Polity == "IrSasn1", Variable == "Law Formal legal code") # not available, but in sogdiana it is available. law formal leg code 0
-df %>% filter(Polity == "IrSasn1") # Sogdiana, Kachi, Susiana
 df %>% filter(Polity == "IrSasn1") # Sogdiana, Kachi, Susiana
 df %>% filter(NGA == "Sogdiana", Variable == "Law Formal legal code") # 
 
@@ -58,5 +58,77 @@ polities_df %>% filter(NGA == "Susiana")
 polities_df %>% filter(NGA == "Sogdiana")
 ```
 
-How come it is coded as Sogdiana in disputed, but 
 
+## Saving Susiana's IrSusa2's PolPop
+
+Now the discrepancy is down to 15 rows from 28 rows.
+```{r}
+# Find what's different
+
+ground_truth <- output_df %>% filter(PolID == "IrSusa2", Date == -3800) 
+bokeh <- df_spread_prop %>% filter(PolID == "IrSusa2", t == -3800) 
+a <- ground_truth[, 5:ncol(bokeh)]  %>% as.numeric()
+b <- bokeh[, 5:ncol(bokeh)] %>% as.numeric()
+xor(is.na(a), is.na(b))
+
+SCdat_df %>% filter(Polity == "IrSusa2", Variable == "Social Scale Polity Population") # no entries for Date -3800!
+SCdat %>% as_tibble() %>% filter(Polity == "IrSusa2", Variable == "Social Scale Polity Population") # no entries for Date -3800! where did the value come from then?
+output_df %>% select(PolID, PolPop, Date) %>%  filter(PolID == "IrSusa2") # available from -3800, with value 873, and -3700 with roughly 13500 pop
+df_spread_prop %>% select(PolID, PolPop, t) %>%  filter(PolID == "IrSusa2") # available from -3700
+SCdat_df %>% filter(Polity == "IrSusa2")
+
+polities_df %>% filter(PolName == "IrSusa2")
+
+mioutput_df <- read_csv("output/reproduction/MIoutput.csv")
+mioutput_df_original <- read_csv("output/original/MIoutput.csv")
+
+mioutput_df_original %>% filter(PolID == "IrSusa2")
+
+Vars_df
+# here, dat is dat from ConstrMI.R, specifying iNGA <- 27 (Susiana).
+# dat_df <-
+  dat %>% 
+  as_tibble() %>% 
+  filter(Polity == "IrSusa2")
+  
+  datSC %>% as_tibble() %>% 
+    filter(PolID == "IrSusa2")
+```
+ 
+Probably CapPop (`Social Scale Population of the largest settlement`) for t=-3800 is borrowed and copied to PolPop (`Social Scale Polity Population`)?
+Turns out the "  # Finally populate 'out' with data tied to a range of dates" section in ConstrMI.R is borrowing the value from IrSusa1's t = -3900. This is caused by IrSusa1's entry has date range of -3900 to -3800. To replicate this behaviour, 
+
+
+
+## Saving Deccan InHoysa 1200 CapPop of 125000
+
+```{r}
+ground_truth <- output_df %>% filter(PolID == "InHoysa", Date == 1200) 
+bokeh <- df_spread_prop %>% filter(PolID == "InHoysa", t == 1200) 
+a <- ground_truth[, 5:56]  %>% as.numeric()
+b <- bokeh[, 5:56] %>% as.numeric()
+xor(is.na(a), is.na(b)) # seems like CapPop
+
+
+SCdat_df %>% filter(Polity == "InHoysa", Variable == "Social Scale Population of the largest settlement") # 
+SCdat %>% as_tibble() %>% filter(Polity == "InHoysa") # CapPop not available
+SCdat %>% as_tibble() %>% filter(NGA == "Deccan", Variable == "Social Scale Population of the largest settlement") # InChaKl has Date.From 1150 Value 12500, 50000 for Date1100
+polities_df %>% filter(NGA == "Deccan")# InChakl from 974 to 1055, InHoysa from 1192 to 1253. 1192 tsukurou InHoysa
+```
+
+Seems that InChaKl lasted 973 to 1191 in Seshat page. In polities_df it's 974 to 1055.
+
+```{r}
+
+
+
+
+
+output_df %>% select(PolID, PolPop, Date) %>%  filter(PolID == "IrSusa2") # 
+df_spread_prop %>% select(PolID, PolPop, t) %>%  filter(PolID == "IrSusa2") # 
+SCdat_df %>% filter(Polity == "IrSusa2")
+
+df_centuries_redundant %>% filter(NGA == "Deccan", Variable == "Social Scale Population of the largest settlement")
+
+
+```
