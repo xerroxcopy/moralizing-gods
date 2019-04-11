@@ -27,20 +27,20 @@ input:
   - `SCdat_df`: a tibble of social complexity in 19,042 x 10, created with `01_precheck.Rmd`. NGA, Polity, Variable, Value From, Value To, Date From, Date To...
   
 
-First, one value from a normal distribution created from ranged value (denoted by "range" in `Value Note` in `SCdat`) is used as value
-Then "disputed" and "uncertain" is dealt by picking one. Why not just use different values as is, embodying uncertainty?..
+First, one value from a normal distribution created from ranged value (denoted by "range" in `Value Note` in `SCdat`) is used as value. Then "disputed" and "uncertain" is dealt by picking one. (Why not just use different values as is, embodying uncertainty?) Below is a dumb but fast and readble way to mutate...
 
 ```{r}
+# 1
 
-# a dumb but fast and readble way to mutate...
-SCdat_df$`Value Note` %>% unique()
-
-df_disputed_uncertain<-
+df_disputed_uncertain <-
   SCdat_df %>%
   filter(
-         `Value Note` %in% c("disputed", "uncertain")) %>% # includes both disputed and uncertain
-  group_by(Polity, Variable)  %>% #used to include , `Date From`, `Date To` but seemed to cause unintentional filterings of polities 
+    `Value Note` %in% c("disputed", "uncertain")
+    ) %>% # includes both disputed and uncertain
+  group_by(NGA, Polity, Variable)  %>% #used to include , `Date From`, `Date To` but seemed to cause unintentional filterings of polities. needed NGA instead!
   sample_n(1)  # Randomly sample from disputed and uncertain, eliminate extra rows
+
+# 2
 
 df_ranged <- SCdat_df %>%
   filter(`Value Note` == "range") %>%
@@ -49,10 +49,17 @@ df_ranged <- SCdat_df %>%
     ) # seems like pmap() is needed. reference: http://yoshidk6.hatenablog.com/entry/2018/08/06/154117
   ) %>% unnest()
 
+# 3: everything else
+
 df_else <- SCdat_df %>%
   filter(!`Value Note` %in% c("disputed", "uncertain", "range")) # identical to filter(`Value Note` == "simple")
 
+# 1 + 2 + 3
+
 df <- bind_rows(df_disputed_uncertain, df_ranged, df_else)
+
+# tidying sparkling joy
+
 df_min <- df %>%
   select(NGA, Polity, Variable, `Value From`, `Date From`, `Date To`) %>%
   rename(PolID = Polity,
@@ -61,9 +68,7 @@ df_min <- df %>%
          DateTo = `Date To`) %>%
   ungroup() %>%
   ungroup() %>%
-  ungroup() %>%
-  ungroup() 
-
+  ungroup()
 # OPTION B: seemed cooler, but apparently way slower probably because of if_else
 # a <- SCdat %>% 
 #   group_by(NGA) %>% 
@@ -83,16 +88,9 @@ df_min <- df %>%
 #     TRUE ~ `Value From` # Catch all statement, equivalent to `Value Note` != "range"
 #   )
 # ) %>% View()
-dim(df_min) # 18823 x 6
-df_min %>% filter(PolID == "Hawaii2") # prof priest available
-df_min %>% filter(NGA == "Kansai", Variable =="Social Scale Polity Population")
-df_min %>% filter(NGA == "Susiana", Variable == "Professions Professional priesthood")
-
 ```
 
-# construct output
-
-Join everything together. 
+# Join everything together
 
 input to join:
 
@@ -133,7 +131,8 @@ df_join <-
   select(-(World.Region:centuries)) %>% 
   ungroup() %>% # ungroup required before filtering
   filter(t >= Start & t <= End) # filter overcopied rows out of polity's existing range
-  # filter(pmap(., function (t, Start, End, ...) between(t, Start, End))) %>% # alternative, not working 
+  # filter(pmap(., function (t, Start, End, ...) between(t, Start, End))) %>% # alternative, not working
+dim(df_join) # 39017 x 12
 ```
 
 ## Join 1a: filter df_join's duplicates into df_join2
@@ -153,7 +152,7 @@ df_join2 <-
   ungroup() %>% 
   select(-(Date:End), -PolStart, -PolEnd)
 
-dim(df_join2) # ~37844 x 12
+dim(df_join2) #  37844 -> 37809 x 5. why decreased when df_disputed rows increased...?
 df_join2 %>% filter(PolID == "Hawaii2") # inspectingoverlapping range:  no duplicates
 df_join2 %>% filter(PolID == "JpKamak") #
 
@@ -171,7 +170,8 @@ df_join_shortname <-
             Vars_df %>% select(Variable, ShortName), 
             by = "Variable") %>% 
   mutate(Variable = ShortName,
-         ShortName = NULL) # 37854 * 12
+         ShortName = NULL) 
+dim(df_join_shortname) # 37809 * 5
 ```
 
 ## Spread: Spread df_join_shortname into df_spread
@@ -183,7 +183,7 @@ df_spread <-
   df_join_shortname %>% 
   spread(key = Variable, value = Value) %>% 
   arrange(NGA, t) 
-dim(df_spread)# 820 * 77. output's got 817 * 98...
+dim(df_spread)# 820 * 70. output's got 817 * 98...
 
 
 ```
@@ -207,8 +207,8 @@ PropCoded_col <-
 
 df_spread_prop <- 
   bind_cols(df_spread, PropCoded_col) %>% 
-  select(NGA, PolID, PropCoded, everything()) # https://github.com/tidyverse/dplyr/issues/1188
-
+  select(NGA, PolID, PropCoded, everything()) %>% # https://github.com/tidyverse/dplyr/issues/1188
+  select(NGA:t, colnames(output_df_min)[5:71])
 ```
 
 ## Verify PropCoded
@@ -248,21 +248,9 @@ output_df_min <- output_df %>%
     function(x) {!all(is.na(x))
     }
   ) 
-dim(output_df_min) # 817 x 71. 27 columns contain nothing
-dim(df_spread_prop) # 820 x 71
-colnames(output_df_min)
-colnames(df_spread_prop)
-
-# reorder SC variable columns to match `output`
-
-df_spread_prop_reordered <- df_spread_prop %>% 
-  select(NGA:t, colnames(output_df_min)[5:71])
-colnames(df_spread_prop_reordered)
 
 
-# profPriest in Hawaii2 t= 1200 is dropped in df_spread_prop_reordered, while it's available in output_df_min at 0.1.
-View(df_spread_prop_reordered)
-View(output_df_min)
+# profPriest in Hawaii2 t= 1200 is dropped in df_spread_prop, while it's available in output_df_min at 0.1.
 ```
 
 ### Visualize
@@ -285,7 +273,7 @@ Ideally, points should be all lined up to `y = x`.
 
 ```{r}
 left_join(
-  df_spread_prop_reordered %>% select(t, NGA, PolID, PropCoded), 
+  df_spread_prop %>% select(t, NGA, PolID, PropCoded), 
   output_df %>% select(Date, NGA, PolID, PropCoded),
   by = c("t" = "Date", "NGA", "PolID")
 ) %>% #View()
@@ -301,20 +289,25 @@ output_df %>% filter(NGA == "Kansai") %>% View()
 
 ``` 
 
-who are still not identical?
-```{r}
+### who are still not identical?
+
+
+```{r identical-police}
 df_identical <- 
   left_join(
-    df_spread_prop_reordered, 
+    df_spread_prop, 
     output_df %>% select(Date, NGA, PolID, PropCoded),
     by = c("t" = "Date", "NGA", "PolID")
   ) %>%
   filter(round(PropCoded.x * 100, 1) != PropCoded.y) 
 
-df_identical%>% View()
+df_identical%>% 
+  select(PropCoded.x, PropCoded.y, everything()) %>% 
+  mutate(PropCoded.x = round(PropCoded.x * 100, 1)) %>% 
+  View() # 27 rows
 
 
-df_spread_prop_reordered %>% filter(NGA == "Susiana", t > 600) %>% View()
+df_spread_prop %>% filter(NGA == "Susiana", t > 600) %>% View()
 
 output_df %>% filter(NGA == "Susiana", Date > 600) %>% View()
 

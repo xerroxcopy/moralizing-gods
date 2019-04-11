@@ -3,4 +3,60 @@
 
 this is an appendix for `02_polities.Rmd` dedicated just for inspecting the produced dataframes and missing values / wrong values.
 
-## saving private 
+
+
+## Saving Susiana's SyCalUm	uncertainty
+
+
+## df_min
+
+```{r}
+
+df_disputed_uncertain %>% View() # SyCaalUm available
+df %>% filter(NGA == "Susiana") %>%  View() # available
+df_min %>% filter(NGA == "Susiana") %>%  View() # available
+df_join %>% filter(NGA == "Susiana", PolID == "SyCalUm") %>%  View() # available at t=7000 professional priesthood
+df_join%>% filter(NGA == "Susiana", PolID == "SyCalUm") %>%  View() # available at t=700 professional priesthood
+df_join2 %>% filter(NGA == "Susiana", PolID == "SyCalUm") %>%  View() # available at t=700 professional priesthood
+df_join_shortname %>% filter(NGA == "Susiana", PolID == "SyCalUm") %>%  View() # available at t=700 professional priesthood
+
+df_spread %>% filter(NGA == "Susiana", PolID == "SyCalUm") %>%  View() # yes
+df_spread_prop %>% filter(NGA == "Susiana", PolID == "SyCalUm") %>%  View() # yes
+
+aaaaaa
+
+```
+
+## verify 
+
+
+## Saving Susiana's IrSasn1 LegCode
+
+
+```{r}
+df_disputed_uncertain %>% filter(Polity == "IrSasn1") # not available for Susiana, but in sogdiana it is available. law formal leg code 0.
+df %>% filter(Polity == "IrSasn1", Variable == "Law Formal legal code") # not available, but in sogdiana it is available. law formal leg code 0
+df %>% filter(Polity == "IrSasn1") # Sogdiana, Kachi, Susiana
+df %>% filter(Polity == "IrSasn1") # Sogdiana, Kachi, Susiana
+df %>% filter(NGA == "Sogdiana", Variable == "Law Formal legal code") # 
+
+df_ranged %>% filter(NGA == "Susiana", Polity == "IrSasn1") %>% View() # not available, but in sogdiana it is available. law formal leg cod
+df_join %>% filter(NGA == "Susiana", PolID == "IrSasn1") %>% View() # d
+df_join %>% filter(NGA == "Susiana", Variable == "Law Formal legal code") %>% View() # d
+df_join %>% filter(NGA == "Sogdiana", PolID == "IrSasn1") %>% View() # not available,
+
+
+output_df %>% filter(NGA =="Susiana", PolID == "IrSasn1") # ground truth
+output_df %>% filter(PolID == "IrSasn1") # ground truth. no 
+output_df %>% filter(NGA == "Sogdiana") # ground truth. no 
+df %>% filter(NGA == "Sogdiana") # ground truth. no 
+df_spread_prop %>% filter(NGA =="Susiana", PolID == "IrSasn1")
+df_spread_prop %>% filter(PolID == "IrSasn1")
+
+
+polities_df %>% filter(NGA == "Susiana")
+polities_df %>% filter(NGA == "Sogdiana")
+```
+
+How come it is coded as Sogdiana in disputed, but 
+
